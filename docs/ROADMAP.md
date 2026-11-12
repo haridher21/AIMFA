@@ -45,7 +45,7 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
   - **Accept:** a PR shows ruff + pytest + bandit + pip-audit checks.
 
 ## Phase 1: Primitives (Days 3–4). All ∥; pure functions, no network.
-- [ ] **T1.1 Crypto helpers** ∥
+- [x] **T1.1 Crypto helpers** ∥
   - **Deps:** T0.3
   - **Files:** `aimfa/common/crypto.py`, `tests/unit/test_crypto.py`
   - **Functions:**
