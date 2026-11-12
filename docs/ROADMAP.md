@@ -62,7 +62,7 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - `jwk_thumbprint` of the RFC 8037 Ed25519 example key (`x = 11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo`) equals `kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k`
     - `measure` is independent of the order of `code_paths`, and changes when any file byte, the prompt, the manifest or the model id changes
     - `canonical_json` sorts keys and has no whitespace
-- [ ] **T1.2 DPoP** ∥
+- [x] **T1.2 DPoP** ∥
   - **Deps:** T1.1
   - **Files:** `aimfa/common/dpop.py`, `tests/unit/test_dpop.py`
   - **Functions:**
