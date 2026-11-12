@@ -36,7 +36,7 @@
 | Control plane / attestation | Fake agent → launcher signature + nonce + measurement | Modified agent → measurement | Audit chain | Signing key on disk (`keys/`, git-ignored) | Out of scope | – |
 | Control plane / STS | Stolen identity token → DPoP on `/token` | Token claims → EdDSA signature | Audit | Tokens never logged (`jti` only) | – | Scope escalation → `role_permits` |
 | Gateway | Stolen access token → DPoP | Request replay → `jti` cache + `iat` window | Audit with reason codes | Errors reveal only reason codes | Rate limit + monitor | Out-of-scope / forbidden tool → scope + tier |
-| Approvals | Fake approver → TOTP + approver id | Approval reused for another action → action hash | Audit (`approver:<id>`) | Push contains no secrets | Approval spam → out of scope | – |
+| Approvals | Fake approver → TOTP + approver id | Approval reused for another action → action hash | Audit (`approver:<id>`) | Push contains no secrets. TOTP seeds sit in plaintext in `var/aimfa.db` (git-ignored); accepted, since TOTP needs the raw seed and a local attacker with disk access is out of scope | Approval spam → out of scope | – |
 | Audit log | – | Edit / delete / reorder → hash chain | – | – | – | – |
 | Resources | Direct access bypassing the gateway → gateway secret | Path traversal → normalize + re-check | – | – | – | – |
 

@@ -110,7 +110,7 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - requesting `files:read:/engineering/*` as `expense_reader` → not permitted
     - a requested scope that is a *subset* of an allowed one (`files:read:/expenses/q3.csv`) → permitted
     - categories and `sensitive` are computed correctly
-- [ ] **T1.5 SQLite storage** ∥
+- [x] **T1.5 SQLite storage** ∥
   - **Deps:** T0.3
   - **Files:** `aimfa/common/db.py`, `tests/unit/test_db.py`
   - **Tables:** schema + repository functions for `launchers`, `agents`, `approvers` (TOTP seed, last used step), `nonces`, `tokens` (jti, agent, task, scopes, exp, revoked), `approvals`, `risk_events`, `audit`
