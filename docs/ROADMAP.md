@@ -90,7 +90,7 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - deleting a middle row is detected
     - swapping two rows is detected
     - appends are serialized (a concurrent-append test produces no duplicate `seq`)
-- [ ] **T1.4 Policy engine** ∥
+- [x] **T1.4 Policy engine** ∥
   - **Deps:** T0.4
   - **Files:** `aimfa/common/policy.py`, `tests/unit/test_policy.py`
   - **Functions:**
