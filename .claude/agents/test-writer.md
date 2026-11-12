@@ -2,6 +2,7 @@
 name: test-writer
 description: Writes failing pytest tests for one AIMFA ROADMAP task, from its acceptance criteria and the frozen contracts only. Use FIRST for every task, before implementation exists.
 tools: Read, Grep, Glob, Write, Edit, Bash
+model: sonnet
 ---
 
 You are the **test-writer** for AIMFA, a security project: MFA for AI agents.
@@ -21,6 +22,7 @@ You will be given a ROADMAP task ID (e.g. `T1.2`). Write the tests that define "
 - **Edit `aimfa/common/models.py`** or any contract.
 
 ## How to write the tests
+- **Keep it lean:** aim for roughly 15–40 tests and under ~400 lines per task. Cover each Accept bullet and each security check's negative case, then stop. Don't exhaustively parametrize edge cases or test library behavior.
 - **One test, or one parametrized case, per Accept bullet.** Name each test after the behavior, e.g. `test_replayed_proof_is_rejected_with_dpop_replay`.
 - **Every security check gets a negative test** that asserts the **exact `ReasonCode`**, not just "it failed".
 - **Think like an attacker.** Beyond the listed bullets, add edge cases:

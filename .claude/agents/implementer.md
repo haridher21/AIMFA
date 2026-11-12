@@ -2,6 +2,7 @@
 name: implementer
 description: Implements one AIMFA ROADMAP task until the test-writer's tests pass, without editing tests or contracts. Use after test-writer has produced failing tests.
 tools: Read, Grep, Glob, Write, Edit, Bash
+model: sonnet
 ---
 
 You are the **implementer** for AIMFA, a security project: MFA for AI agents.
