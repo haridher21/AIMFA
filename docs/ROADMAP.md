@@ -79,7 +79,7 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - same `jti` twice → `DPOP_REPLAY`
     - missing or wrong `ath` when an access token is given → `DPOP_ATH_MISMATCH`
     - a private-key `jwk` (has `d`) in the header → `DPOP_MALFORMED`
-- [ ] **T1.3 Audit hash chain** ∥
+- [x] **T1.3 Audit hash chain** ∥
   - **Deps:** T1.1, T1.5
   - **Files:** `aimfa/control_plane/audit.py`, `tests/unit/test_audit.py`
   - **Functions:** `AuditLog(db).append(AuditAppend) -> AuditRecord`, `verify() -> AuditVerifyResult`, `list(after_seq, limit)`
