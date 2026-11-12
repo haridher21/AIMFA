@@ -122,7 +122,7 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - all queries are parameterized (a review check)
 
 ## Phase 2: Control plane + resources (Days 5–7)
-- [ ] **T2.1 Registry + admin API**
+- [x] **T2.1 Registry + admin API**
   - **Deps:** T1.5
   - **Files:** `aimfa/control_plane/app.py`, `registry.py`, `tests/integration/test_admin.py`
   - **Endpoints:** `/admin/launchers`, `/admin/agents`, `/admin/approvers`, revoke, clear-quarantine, `/health`
@@ -131,14 +131,14 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - a missing or wrong `X-Admin-Key` → 401 `UNAUTHORIZED` (constant-time compare)
     - registering with an unknown role → 422
     - approver enrollment returns an otpauth URI exactly once, and the seed is never in any later response
-- [ ] **T2.2 Attestation**
+- [x] **T2.2 Attestation**
   - **Deps:** T1.1, T2.1
   - **Files:** `aimfa/control_plane/attestation.py`, `tests/integration/test_attestation.py`
   - **Endpoints:** `/attest/challenge`, `/attest`, `/.well-known/jwks.json`. The control-plane signing key is generated on first start into `KEYS_DIR`.
   - **Accept:**
     - happy path issues an identity token whose claims validate as `IdentityCredentialClaims`
     - each of these is rejected with its reason code and audited: unknown agent, unknown launcher, launcher not assigned to this agent, bad JWS signature, unknown nonce, reused nonce, expired nonce, nonce issued for a different agent, measurement mismatch, quarantined agent
-- [ ] **T2.3 Token service (STS) + revocation**
+- [x] **T2.3 Token service (STS) + revocation**
   - **Deps:** T1.2, T1.4, T2.2
   - **Files:** `aimfa/control_plane/sts.py`, `revocation.py`, `tests/integration/test_sts.py`
   - **Endpoints:** `/token`, `/tasks/{id}/complete`, `/internal/introspect`, `/admin/tokens`
@@ -150,7 +150,7 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - an expired identity token → rejected
     - after `/tasks/{id}/complete`, introspect returns `active=false, TOKEN_REVOKED`
     - completing another task's id → 403
-- [ ] **T2.4 Mock resources** ∥
+- [x] **T2.4 Mock resources** ∥
   - **Deps:** T0.3
   - **Files:** `aimfa/resources/app.py`, `aimfa/resources/seed_data/**`, `tests/integration/test_resources.py`
   - **Seed data:**

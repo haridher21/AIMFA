@@ -83,6 +83,13 @@ Plus a **tamper-proof logbook**. Every entry contains a fingerprint of the entry
 | Who may do what | `policy/roles.yaml`, `policy/actions.yaml` |
 | Signatures and fingerprints | `aimfa/common/crypto.py` (Phase 1) |
 | Stolen-token protection | `aimfa/common/dpop.py` (Phase 1) |
+| The tamper-evident log | `aimfa/control_plane/audit.py` (Phase 1) |
+| Registering agents, launchers, approvers (admin API) | `aimfa/control_plane/registry.py`, `app.py` (Phase 2) |
+| Proving what the agent IS (the "ID card" desk) | `aimfa/control_plane/attestation.py` (Phase 2) |
+| Trading an ID card for a short-lived, key-bound badge | `aimfa/control_plane/sts.py` (Phase 2) |
+| Cancelling badges / the kill switch | `aimfa/control_plane/revocation.py` (Phase 2) |
+| Constant-time secret checks + error format | `aimfa/common/http.py` (Phase 2) |
+| The fake company systems the agent attacks | `aimfa/resources/app.py`, `store.py`, `seed_data/` (Phase 2) |
 | The checkpoint | `aimfa/gateway/pipeline.py` (Phase 3) |
 | The behavior guard | `aimfa/control_plane/monitor.py` (Phase 4) |
 | Human approvals | `aimfa/control_plane/approvals.py` (Phase 4) |

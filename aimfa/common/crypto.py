@@ -44,6 +44,8 @@ __all__ = [
 # Claims every verified token must carry (AGENTS.md rule 2). Without ``exp`` a token
 # would live forever; without ``aud``/``iss`` PyJWT would silently skip those checks.
 _REQUIRED_CLAIMS = ["exp", "aud", "iss"]
+# Seconds of clock skew tolerated for ``iat`` when verify_jwt is given an injected ``now``.
+_IAT_LEEWAY = 30
 
 
 # ------------------------------------------------------------------ encoding helpers
@@ -291,6 +293,7 @@ def verify_jwt(
     issuer: str,
     *,
     token_use: str | None = None,
+    now: int | None = None,
 ) -> dict[str, Any]:
     """Verify an EdDSA JWT and return its claims, or raise ``jwt.InvalidTokenError``.
 
@@ -299,6 +302,10 @@ def verify_jwt(
     leeway; and, if ``token_use`` is given, an exact ``token_use`` match. Expiry raises
     ``jwt.ExpiredSignatureError`` only after the signature checked out, so a forgery is
     never reported as merely expired.
+
+    ``now`` (Unix seconds) lets a service with an injected clock decide expiry by ITS
+    clock instead of the machine's, so TTL logic is testable without sleeping. When given,
+    ``exp`` is enforced here with the same zero leeway (never skipped).
     """
     if not isinstance(public_key, Ed25519PublicKey):
         raise TypeError("verify_jwt expects an Ed25519PublicKey")
@@ -319,7 +326,9 @@ def verify_jwt(
         leeway=0,
         options={
             "verify_signature": True,
-            "verify_exp": True,
+            # With an injected clock PyJWT's wall-clock exp/iat checks are replaced below.
+            "verify_exp": now is None,
+            "verify_iat": now is None,
             "verify_aud": True,
             "verify_iss": True,
             "require": _REQUIRED_CLAIMS,
@@ -327,6 +336,16 @@ def verify_jwt(
             "strict_aud": True,
         },
     )
+    if now is not None:
+        exp = claims.get("exp")
+        if isinstance(exp, bool) or not isinstance(exp, int | float) or exp <= now:
+            raise jwt.ExpiredSignatureError("signature has expired")
+        # A token dated in the future (beyond a little clock skew) is not valid yet.
+        iat = claims.get("iat")
+        if iat is not None and (
+            isinstance(iat, bool) or not isinstance(iat, int | float) or iat > now + _IAT_LEEWAY
+        ):
+            raise jwt.ImmatureSignatureError("token issued in the future")
 
     # Token-type confusion: an identity token must never pass as an access token.
     # Exact string match only (no case folding, trimming or list membership).

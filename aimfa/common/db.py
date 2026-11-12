@@ -83,7 +83,8 @@ CREATE TABLE IF NOT EXISTS agents (
     description        TEXT NOT NULL,
     status             TEXT NOT NULL,
     created_at         INTEGER NOT NULL,
-    quarantined_at     INTEGER
+    quarantined_at     INTEGER,
+    identity_not_before INTEGER
 );
 CREATE TABLE IF NOT EXISTS approvers (
     approver_id    TEXT PRIMARY KEY,
@@ -363,6 +364,10 @@ class Database:
                 # Fail closed: without WAL, concurrent readers/writers would error out.
                 raise RuntimeError("could not enable SQLite WAL mode")
             conn.executescript(_SCHEMA)
+            # Older database files predate this column; add it in place.
+            columns = {r["name"] for r in conn.execute("PRAGMA table_info(agents)")}
+            if "identity_not_before" not in columns:
+                conn.execute("ALTER TABLE agents ADD COLUMN identity_not_before INTEGER")
         finally:
             conn.close()
 
@@ -533,6 +538,32 @@ class Database:
                 "UPDATE tokens SET revoked = 1 WHERE agent_id = ? AND revoked = 0", (agent_id,)
             ).rowcount
 
+    def revoke_agent_identity(self, agent_id: str, *, not_before: int) -> int:
+        """Kill switch, in one transaction: revoke all tokens, drop the agent back to
+        REGISTERED (a QUARANTINED agent stays quarantined) and refuse any identity
+        credential issued before ``not_before`` (Unix seconds). Without the last part the
+        agent could mint fresh access tokens from its still-valid identity credential.
+        Returns the number of tokens newly revoked."""
+        with self.connect(immediate=True) as conn:
+            revoked = conn.execute(
+                "UPDATE tokens SET revoked = 1 WHERE agent_id = ? AND revoked = 0", (agent_id,)
+            ).rowcount
+            conn.execute(
+                "UPDATE agents SET identity_not_before = ?, status = CASE WHEN status = ? "
+                "THEN status ELSE ? END WHERE agent_id = ?",
+                (
+                    not_before,
+                    AgentStatus.QUARANTINED.value,
+                    AgentStatus.REGISTERED.value,
+                    agent_id,
+                ),
+            )
+            return revoked
+
+    def get_identity_not_before(self, agent_id: str) -> int | None:
+        row = self._one("SELECT identity_not_before FROM agents WHERE agent_id = ?", (agent_id,))
+        return None if row is None else row["identity_not_before"]
+
     def clear_quarantine(self, agent_id: str) -> bool:
         """Admin action: QUARANTINED -> REGISTERED. The agent must re-attest to become
         ACTIVE again. Revoked tokens are never un-revoked; it must request new ones."""
@@ -633,6 +664,14 @@ class Database:
             )
             == 1
         )
+
+    def count_live_nonces(self, agent_id: str, *, now: datetime) -> int:
+        """Unused, unexpired nonces outstanding for one agent (used to cap challenges)."""
+        row = self._one(
+            "SELECT COUNT(*) AS n FROM nonces WHERE agent_id = ? AND used = 0 AND expires_at > ?",
+            (agent_id, to_epoch_us(now)),
+        )
+        return int(row["n"])
 
     def delete_expired_nonces(self, *, now: datetime) -> int:
         return self._write("DELETE FROM nonces WHERE expires_at <= ?", (to_epoch_us(now),))

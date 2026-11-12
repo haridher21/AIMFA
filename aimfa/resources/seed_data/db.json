@@ -1,0 +1,13 @@
+{
+  "bank_balance": 250000.0,
+  "vendors": [
+    {"id": 1, "name": "Globex Supplies", "account": "ACME-0001", "approved": true},
+    {"id": 2, "name": "Initech Travel", "account": "ACME-0002", "approved": true},
+    {"id": 3, "name": "Hooli Cloud", "account": "ACME-0003", "approved": true}
+  ],
+  "payroll": [
+    {"id": 1, "employee": "Alice Example", "salary": 91000},
+    {"id": 2, "employee": "Bob Example", "salary": 84000},
+    {"id": 3, "employee": "Carol Example", "salary": 105000}
+  ]
+}

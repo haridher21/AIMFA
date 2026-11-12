@@ -12,6 +12,7 @@ This service is the **Policy Decision Point** and the identity provider. Its end
 | `monitor.py` | risk rules, decay, step-up flag, auto-revoke + quarantine | T4.1 |
 | `approvals.py` | create / decide (TOTP) / consume (action hash, single use) / expire | T4.3 |
 | `notify.py` | ntfy push. Failures are logged, and never block an approval. | T4.3 |
+| `state.py` | shared `CPState` (db, audit, policy, signing key, injected clock), admin/internal secret guards | T2.1 |
 | `audit.py` | hash-chained append-only log + verify | T1.3 |
 
 ## Must never
