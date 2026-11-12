@@ -218,3 +218,15 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ---- AIMFA project-specific ----
+# Runtime state: SQLite DBs, mock email outbox, generated keys. Never commit.
+var/
+keys/
+*.db
+*.sqlite3
+outbox/
+*.pem
+*.jwk.json
+# Local Claude Code settings (shared agent definitions in .claude/agents ARE committed)
+.claude/settings.local.json

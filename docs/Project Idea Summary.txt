@@ -1,0 +1,35 @@
+Project Summary: Securing autonomous AI systems requires a fundamental shift from 
+human-centric multi-factor authentication (MFA) to machine-verifiable security 
+frameworks. Because AI agents lack physical devices, biometrics, or interactive login 
+sessions, traditional security tools fail. This document outlines the modern architectural 
+blueprint required to verify, monitor, and control non-human intelligence workloads 
+safely. 
+
+1. Identity Verification: Cryptographic Workload Attestation 
+○ The Concept: Identity & Access Management (IAM) and Non-Human Identity 
+(NHI) governance. 
+○ How it works: The system verifies the identity of the AI agent by 
+cryptographically checking its underlying environment (such as its server 
+location, database hash, or cloud container code) before it is allowed to connect 
+to any data pipelines. 
+
+2. Real-Time Defense: Continuous Behavioral Monitoring 
+○ The Concept: Zero Trust Architecture (ZTA) and User and Entity Behavior 
+Analytics (UEBA). 
+○ How it works: If an expense-tracking AI agent suddenly attempts to download 
+engineering source code, the system flags the anomaly based on behavioral 
+heuristics and revokes access immediately. 
+
+3. Access Control: Scoped Ephemeral Tokens 
+○ The Concept: Principle of Least Privilege (PoLP) and Temporal/Token Security. 
+○ How it works: Instead of using a master API key that works forever, the agent 
+receives an automated, short-lived token (e.g., valid for 15 minutes) that only 
+allows it to "Read PDF" inside one specific folder. Once the task finishes, the key 
+automatically self-destructs. 
+
+4. Risk Safeguards: Delegated Human Authorization 
+○ The Concept: Human-in-the-Loop (HITL) and Step-Up Authentication. 
+○ How it works: The AI agent can freely read and draft emails on its own. However, 
+the moment it attempts to "Send Wire Transfer" or "Delete Database," the 
+system pauses execution and demands a physical multi-factor confirmation 
+(like a push notification) from an authorized human administrator.

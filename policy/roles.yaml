@@ -1,0 +1,51 @@
+# AIMFA roles: what each kind of agent is ALLOWED to do (least privilege).
+#
+# Scope grammar:  "<service>:<verb>:<target>"
+#   service  one of: files, email, bank, db         (see policy/actions.yaml)
+#   verb     one of the verbs that service supports
+#   target   files -> an absolute POSIX path pattern; "*" matches any characters
+#                     (including "/"). Paths are normalized BEFORE matching and any
+#                     path that escapes its root (e.g. "/expenses/../engineering")
+#                     is rejected as INVALID_ARGUMENTS.
+#            email -> "internal" or "external" (recipient domain class)
+#            bank  -> "*"
+#            db    -> a table name or "*"
+#
+# The token service (STS) only issues a token if EVERY requested scope is covered by
+# one of the role's allowed_scopes (otherwise STS_SCOPE_ESCALATION).
+#
+# profile: resource categories (policy/actions.yaml -> categories) that are NORMAL for
+# this role. The behavioral monitor adds risk when an agent touches anything else,
+# even if a scope technically allowed it.
+
+roles:
+  expense_reader:
+    description: Reads and summarizes expense reports; may email internal staff.
+    allowed_scopes:
+      - "files:list:/expenses"
+      - "files:read:/expenses/*"
+      - "email:send:internal"
+    profile: [expenses, email_internal]
+    rate_limit_per_minute: 30
+
+  eng_assistant:
+    description: Helps engineers with documents in the engineering share.
+    allowed_scopes:
+      - "files:list:/engineering"
+      - "files:read:/engineering/*"
+      - "files:write:/engineering/docs/*"
+      - "email:send:internal"
+    profile: [engineering, email_internal]
+    rate_limit_per_minute: 60
+
+  finance_ops:
+    description: Pays approved vendors. Every wire transfer needs human step-up.
+    allowed_scopes:
+      - "files:list:/expenses"
+      - "files:read:/expenses/*"
+      - "db:read:*"
+      - "bank:wire:*"
+      - "email:send:internal"
+      - "email:send:external"
+    profile: [expenses, finance, email_internal, email_external]
+    rate_limit_per_minute: 20

@@ -1,0 +1,45 @@
+Project Summary 
+
+Problem Statement 
+AI agents now operate autonomously with real credentials, executing tasks such as accessing 
+databases, sending communications, and moving between systems without a human present at 
+login. Traditional multi-factor authentication (MFA) was built for humans and relies on physical 
+devices, biometrics, and interactive sessions — none of which apply to software agents. Static 
+API keys, the current default for machine access, cannot verify an agent's identity or intent 
+continuously, meaning a hijacked, compromised, or malfunctioning agent can act destructively 
+long before anyone notices. 
+
+Proposed Solution 
+This project proposes MFA for AI Agents: a machine-verifiable security framework that replaces 
+human login factors with three continuous, automated checks. Instead of authenticating a 
+person once at sign-in, the system authenticates an agent's identity, intent, and access scope in 
+real time, throughout every action it takes — pausing only for human approval when the agent 
+attempts a high-risk operation. 
+
+Core Mechanism 
+The framework rests on three pillars, each mapped to an established security discipline: 
+● Identity Verification (Cryptographic Workload Attestation): Using IAM and Non-Human 
+Identity (NHI) governance, the system cryptographically confirms the agent's underlying 
+environment — server location, database hash, or container code — before granting any 
+data access. 
+● Real-Time Defense (Continuous Behavioral Monitoring): Applying Zero Trust 
+Architecture (ZTA) and User and Entity Behavior Analytics (UEBA), the system flags and 
+revokes access the instant an agent behaves outside its expected pattern (e.g., an 
+expense-tracking agent trying to access engineering source code).
+● Access Control (Scoped Ephemeral Tokens): Following the Principle of Least Privilege 
+(PoLP), agents receive short-lived, narrowly scoped tokens (e.g., 15-minute "read-only" 
+access to one folder) that self-destruct once the task completes, rather than permanent 
+master keys. 
+
+A fourth safeguard, Delegated Human Authorization, layers Human-in-the-Loop (HITL) and 
+step-up authentication on top of the above: agents act freely within low-risk boundaries but must 
+pause and request a human-approved push confirmation before executing irreversible actions 
+like a wire transfer or database deletion. 
+
+Significance 
+As organizations delegate more decision-making and system access to autonomous AI agents, 
+the security model must evolve from a one-time human login event to an always-on, 
+machine-native verification loop. This approach closes the gap left by static credentials, 
+containing the potential damage of a compromised or malfunctioning agent to a narrow, 
+time-boxed, and continuously monitored blast radius — while still allowing humans to retain final 
+say over consequential actions. 

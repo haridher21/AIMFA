@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aimfa"
+version = "0.1.0"
+description = "MFA for AI Agents: attestation, proof-of-possession tokens, behavioral monitoring and human step-up behind a zero-trust gateway."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "httpx>=0.27",
+    "PyJWT[crypto]>=2.9",
+    "cryptography>=43",
+    "PyYAML>=6.0",
+    "pyotp>=2.9",
+    "qrcode>=7.4",
+    "streamlit>=1.38",
+    "openai>=1.40",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+    "bandit>=1.7.9",
+    "pip-audit>=2.7",
+]
+
+[tool.setuptools.packages.find]
+include = ["aimfa*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [".venv", "var", "keys"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+# Tests and attack scripts legitimately use assert and hard-coded fake secrets.
+"tests/**" = ["S101", "S105", "S106"]
+"attacks/**" = ["S101", "S105", "S106"]
+# Enum labels like TOKEN_EXPIRED / token_type="DPoP" are not passwords (false positives).
+"aimfa/common/models.py" = ["S105"]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv", "attacks"]

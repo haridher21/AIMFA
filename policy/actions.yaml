@@ -1,0 +1,85 @@
+# AIMFA actions: every tool an agent can call through the gateway.
+#
+# For each tool:
+#   service / verb  -> which scope family it needs  ("<service>:<verb>:<target>")
+#   target_arg      -> which argument becomes the scope target (files: a path; db: a table)
+#   target          -> fixed target instead of an argument ("*"), or "recipient_class"
+#                      for email (internal/external based on internal_email_domains)
+#   tier            -> low | medium | high | forbidden
+#   tiers           -> per-target tiers (used by send_email)
+#   args            -> required arguments (anything else is INVALID_ARGUMENTS)
+#
+# Unknown tools are ACTION_FORBIDDEN. Tier meaning:
+#   low       allow
+#   medium    allow, but the monitor weighs it more
+#   high      pause and require human approval (push + TOTP)
+#   forbidden always deny
+
+internal_email_domains: ["acme.test"]
+
+tools:
+  list_files:
+    service: files
+    verb: list
+    target_arg: dir
+    tier: low
+    args: [dir]
+
+  read_file:
+    service: files
+    verb: read
+    target_arg: path
+    tier: low
+    args: [path]
+
+  write_file:
+    service: files
+    verb: write
+    target_arg: path
+    tier: medium
+    args: [path, content]
+
+  send_email:
+    service: email
+    verb: send
+    target: recipient_class
+    tiers:
+      internal: medium
+      external: high
+    args: [to, subject, body]
+
+  wire_transfer:
+    service: bank
+    verb: wire
+    target: "*"
+    tier: high
+    args: [to_account, amount, memo]
+
+  query_db:
+    service: db
+    verb: read
+    target_arg: table
+    tier: low
+    args: [table]
+
+  delete_table:
+    service: db
+    verb: delete
+    target_arg: table
+    tier: high
+    args: [table]
+
+# Resource categories, used by the behavioral monitor's "out of profile" rule.
+# Keys are matched against "<service>:<target>" (files targets are normalized paths).
+categories:
+  expenses: ["files:/expenses", "files:/expenses/*"]
+  engineering: ["files:/engineering", "files:/engineering/*"]
+  finance: ["bank:*", "db:*"]
+  email_internal: ["email:internal"]
+  email_external: ["email:external"]
+
+# Sensitive resources: reading one and then sending data out (external email, wire)
+# in the same task triggers the monitor's exfiltration-sequence rule.
+sensitive:
+  - "files:/engineering/secrets*"
+  - "files:*.env"
