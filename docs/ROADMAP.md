@@ -168,7 +168,7 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - reset restores the seed
 
 ## Phase 3: Gateway + agent client (Days 7–9)
-- [ ] **T3.1 Gateway pipeline**
+- [x] **T3.1 Gateway pipeline**
   - **Deps:** T2.3, T2.4
   - **Files:** `aimfa/gateway/app.py`, `pipeline.py`, `proxy.py`, `tests/integration/test_gateway.py`
   - **Behavior:** implements the 10-step pipeline in CONTRACTS.md. The control-plane client is an injectable interface, so tests can run all 3 apps in-process with `TestClient`. Monitor = a stub returning score 0; approvals = real calls to the CP internal API.
@@ -185,11 +185,11 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - out-of-scope path
     - high-tier action → 202
   - Every decision produces an audit record.
-- [ ] **T3.2 Baseline mode** ∥
+- [x] **T3.2 Baseline mode** ∥
   - **Deps:** T2.4
   - **Files:** `aimfa/gateway/baseline.py`, `tests/integration/test_baseline.py`
   - **Accept:** with `AIMFA_MODE=baseline`, any tool call carrying the correct `X-API-Key` is forwarded, including out-of-scope calls (intentionally weak). A wrong key → 401 `BASELINE_API_KEY_INVALID`.
-- [ ] **T3.3 Agent client SDK**
+- [x] **T3.3 Agent client SDK**
   - **Deps:** T3.1
   - **Files:** `aimfa/agents/client.py`, `tests/integration/test_client.py`
   - **Class:** `AgentClient(settings, private_key, identity_token)` with methods:
@@ -232,6 +232,7 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - an expense agent reading `/engineering/...` with a broad test token still gets risk points (out-of-profile)
 - [ ] **T4.3 Human approvals (push + TOTP)**
   - **Deps:** T3.1, T2.1
+  - **Already done in Phase 3:** the approval routes in `approvals.py` (create, consume, poll, decide with TOTP and one-time codes), tested in `tests/integration/test_approval_routes.py`. **Still to do:** `notify.py` (the `TODO(T4.3)` hook in create), the enroll script, a risk event on deny, and the remaining Accept bullets (ntfy content, ntfy failure).
   - **Files:**
     - `aimfa/control_plane/approvals.py`, `notify.py`
     - `scripts/enroll_approver.py` (prints a QR code in the terminal + saves a PNG to `var/`)

@@ -29,6 +29,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 from aimfa.common.models import SIGNING_ALG, PublicJWK
 
 __all__ = [
+    "action_hash",
     "canonical_json",
     "generate_keypair",
     "jwk_thumbprint",
@@ -74,6 +75,18 @@ def canonical_json(obj: Any) -> bytes:
 def sha256_hex(data: bytes) -> str:
     """Lowercase hex SHA-256 of ``data`` (matches ``SHA256_HEX_PATTERN``)."""
     return hashlib.sha256(data).hexdigest()
+
+
+def action_hash(agent_id: str, task_id: str, tool: str, args: dict[str, Any]) -> str:
+    """Fingerprint of ONE exact action (CONTRACTS.md "Action hash").
+
+    A human approves this hash, not a vague "send an email": the same agent, task, tool and
+    (normalized) arguments must come back for the approval to be consumed. The gateway and
+    the control plane both call this, so they cannot disagree about the rule.
+    """
+    return sha256_hex(
+        canonical_json({"agent_id": agent_id, "task_id": task_id, "tool": tool, "args": args})
+    )
 
 
 # ------------------------------------------------------------------ keys

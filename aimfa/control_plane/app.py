@@ -16,7 +16,7 @@ from aimfa.common.db import Database
 from aimfa.common.dpop import ReplayCache
 from aimfa.common.http import install_error_handling, require_strong_secrets
 from aimfa.common.policy import Policy
-from aimfa.control_plane import attestation, registry, revocation, sts
+from aimfa.control_plane import approvals, attestation, registry, revocation, sts
 from aimfa.control_plane.audit import AuditLog
 from aimfa.control_plane.state import (
     CPState,
@@ -55,4 +55,5 @@ def create_app(settings: Settings, *, clock: Callable[[], datetime] | None = Non
     app.include_router(attestation.make_router(state))
     app.include_router(sts.make_router(state))
     app.include_router(revocation.make_router(state, require_admin, require_internal))
+    app.include_router(approvals.make_router(state, require_admin, require_internal))
     return app

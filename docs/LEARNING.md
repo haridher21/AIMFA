@@ -90,10 +90,16 @@ Plus a **tamper-proof logbook**. Every entry contains a fingerprint of the entry
 | Cancelling badges / the kill switch | `aimfa/control_plane/revocation.py` (Phase 2) |
 | Constant-time secret checks + error format | `aimfa/common/http.py` (Phase 2) |
 | The fake company systems the agent attacks | `aimfa/resources/app.py`, `store.py`, `seed_data/` (Phase 2) |
-| The checkpoint | `aimfa/gateway/pipeline.py` (Phase 3) |
+| The checkpoint | `aimfa/gateway/pipeline.py` (Phase 3). Read `evaluate()` top to bottom: it is the ten steps in order |
+| How an agent talks to AIMFA | `aimfa/agents/client.py` (Phase 3) |
 | The behavior guard | `aimfa/control_plane/monitor.py` (Phase 4) |
-| Human approvals | `aimfa/control_plane/approvals.py` (Phase 4) |
+| Human approvals | `aimfa/control_plane/approvals.py` (routes + TOTP check landed in Phase 3; phone push in Phase 4) |
+| How the gateway reaches the resources (and why it can't reach `/admin`) | `aimfa/gateway/proxy.py` (Phase 3) |
+| "The old way" we compare against | `aimfa/gateway/baseline.py` (Phase 3) |
 | The attacks | `attacks/` (Phase 6) |
+
+### The checkpoint pipeline, in plain English
+Every tool call walks past ten guards in a fixed order, and **the first guard that says no ends the walk**: nothing reaches the company systems. Cheap questions come first (is there a badge? is it genuine and unexpired?), then "does the badge's owner hold the key?" (DPoP), then "has the badge been cancelled?", then "is this a real tool, with clean arguments?", then "is it inside the badge's scopes?", then "does it need a human?". Only then does the gateway use its own secret to call the resource. Two habits matter most: the gateway **writes the decision to the audit log first** (if it cannot, it refuses), and it uses the **cleaned-up path** it checked, never the raw one the agent sent. `AIMFA_MODE=baseline` skips all of this and checks one shared password, which is how we show what the attacks do without AIMFA.
 
 ## 6. Likely Q&A questions (practice these)
 - **Why not just use short-lived API keys?** A short-lived key can still be used by whoever steals it during its lifetime. DPoP binds the token to a private key that never leaves the agent.

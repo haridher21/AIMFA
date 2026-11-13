@@ -85,19 +85,21 @@ def check_dpop(
     htu: str,
     expected_jkt: str,
     access_token: str | None = None,
+    htm: str = "POST",
 ) -> PublicJWK:
     """Verify the DPoP proof against a REQUIRED key thumbprint.
 
     ``expected_jkt`` is mandatory here (a ``None`` would mean "skip the key check"). At
     ``/token`` it is the thumbprint of the identity credential's key; for an access token it
-    is that token's ``cnf.jkt``.
+    is that token's ``cnf.jkt``. ``htm`` is the HTTP method the proof must name (POST for
+    every route except the approval poll, which is a GET).
     """
     if not proof:
         raise ApiError(401, ReasonCode.DPOP_MISSING, "DPoP proof required")
     try:
         return verify_proof(
             proof,
-            htm="POST",
+            htm=htm,
             htu=htu,
             expected_jkt=expected_jkt,
             access_token=access_token,

@@ -10,7 +10,7 @@ This service is the **Policy Decision Point** and the identity provider. Its end
 | `sts.py` | identity + DPoP → scoped, short-lived, key-bound access token; task completion | T2.3 |
 | `revocation.py` | revoke by jti / task / agent; introspection for the gateway | T2.3 |
 | `monitor.py` | risk rules, decay, step-up flag, auto-revoke + quarantine | T4.1 |
-| `approvals.py` | create / decide (TOTP) / consume (action hash, single use) / expire | T4.3 |
+| `approvals.py` | create / decide (TOTP, once per approver) / consume (action hash, single use) / expire, plus the agent's status poll and the gateway's `POST /internal/audit`. **Pulled forward for T3.1.** The ntfy push is a `TODO(T4.3)` hook; `notify.py` does not exist yet | T3.1, T4.3 |
 | `notify.py` | ntfy push. Failures are logged, and never block an approval. | T4.3 |
 | `state.py` | shared `CPState` (db, audit, policy, signing key, injected clock), admin/internal secret guards | T2.1 |
 | `audit.py` | hash-chained append-only log + verify | T1.3 |

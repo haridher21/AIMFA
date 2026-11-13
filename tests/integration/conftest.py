@@ -33,6 +33,7 @@ ADMIN_KEY = "test-admin-key"
 INTERNAL_SECRET = "test-internal-secret"
 GATEWAY_SECRET = "test-gateway-secret"
 APPROVER = "alice-approver"
+BASELINE_KEY = "test-baseline-key-123"
 
 
 class FakeClock:
@@ -62,6 +63,7 @@ def settings(tmp_path) -> Settings:
         admin_api_key=ADMIN_KEY,
         internal_service_secret=INTERNAL_SECRET,
         gateway_resource_secret=GATEWAY_SECRET,
+        baseline_api_key=BASELINE_KEY,
         identity_token_ttl_seconds=600,
         access_token_ttl_seconds=300,
         attest_nonce_ttl_seconds=60,
@@ -199,3 +201,100 @@ class Harness:
 @pytest.fixture
 def h(settings, clock) -> Harness:
     return Harness(settings, clock)
+
+
+# ----------------------------------------------------------------------------------------
+# Phase 3 helpers: approver TOTP + full in-process stack (CP + resources + gateway).
+# Gateway/client imports are lazy so Phase 2 tests keep working before they exist.
+# ----------------------------------------------------------------------------------------
+import re  # noqa: E402
+
+import pyotp  # noqa: E402
+
+
+def enroll_approver(h: Harness, approver_id: str = APPROVER) -> str:
+    """Enroll an approver and return the TOTP seed (shown once by the CP)."""
+    r = h.cp.post("/admin/approvers", json={"approver_id": approver_id}, headers=h.admin)
+    assert r.status_code == 201, r.text
+    return re.search(r"secret=([A-Za-z0-9]+)", r.json()["provisioning_uri"]).group(1)
+
+
+def valid_code(seed: str, when: datetime) -> str:
+    return pyotp.TOTP(seed).at(when)
+
+
+def invalid_code(seed: str, when: datetime) -> str:
+    totp = pyotp.TOTP(seed)
+    near = {totp.at(when + timedelta(seconds=d)) for d in (-60, -30, 0, 30, 60)}
+    return next(c for c in (f"{i:06d}" for i in range(1_000_000)) if c not in near)
+
+
+class Stack:
+    def __init__(self, h: Harness, settings: Settings, clock: FakeClock) -> None:
+        from aimfa.gateway.app import create_app as gw_app
+        from aimfa.gateway.cp_client import HttpControlPlaneClient
+
+        from aimfa.resources.app import create_app as res_app
+
+        self.h, self.settings, self.clock = h, settings, clock
+        self.seed = enroll_approver(h)
+        self.res = TestClient(res_app(settings))
+        self.gw = TestClient(
+            gw_app(
+                settings,
+                control_plane_client=HttpControlPlaneClient(h.cp, settings),
+                resources_http=self.res,
+                clock=clock,
+            )
+        )
+
+    def onboard_task(self, agent_id="expense-bot", role="expense_reader", scopes=None):
+        """Returns (agent_key, access_token, TokenResponse-json)."""
+        key, ident = self.h.onboard(agent_id, role)
+        r = self.h.request_token(key, ident, scopes or ["files:read:/expenses/*"])
+        assert r.status_code == 200, r.text
+        body = r.json()
+        return key, body["access_token"], body
+
+    def proof(self, key, access_token, method="POST", path="/tool") -> str:
+        return make_proof(
+            key,
+            method,
+            self.settings.gateway_url + path,
+            access_token,
+            now=int(self.clock().timestamp()),
+        )
+
+    def headers(self, key, access_token) -> dict[str, str]:
+        return {
+            "Authorization": f"DPoP {access_token}",
+            "DPoP": self.proof(key, access_token),
+        }
+
+    def call(self, key, access_token, tool, args=None, approval_id=None, headers=None):
+        body: dict[str, Any] = {"tool": tool, "args": args or {}}
+        if approval_id:
+            body["approval_id"] = approval_id
+        return self.gw.post("/tool", json=body, headers=headers or self.headers(key, access_token))
+
+    def decide(self, approval_id, *, approve=True, code=None, approver=APPROVER):
+        return self.h.cp.post(
+            f"/approvals/{approval_id}/decide",
+            json={
+                "approver_id": approver,
+                "approve": approve,
+                "totp_code": code or valid_code(self.seed, self.clock()),
+            },
+            headers=self.h.admin,
+        )
+
+
+def reason_of(resp) -> str:
+    """Reason code from either an ErrorResponse or a ToolCallResponse body."""
+    body = resp.json()
+    return body["reason_code"] if "reason_code" in body else body["decision"]["reason_code"]
+
+
+@pytest.fixture
+def stack(h, settings, clock) -> Stack:
+    return Stack(h, settings, clock)

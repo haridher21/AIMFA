@@ -2,7 +2,7 @@
 
 | Module | Responsibility | Task |
 |---|---|---|
-| `client.py` | `AgentClient`: holds the instance key, builds DPoP proofs, calls the gateway, polls approvals, completes tasks | T3.3 |
+| `client.py` | `AgentClient`: holds the instance key, builds a fresh DPoP proof per request, calls the gateway, polls approvals, completes tasks. Raises `AuthError` (401), `PolicyDenied` (403/422), `ApprovalTimeout` | T3.3 (done) |
 | `launcher.py` | The **trusted root**: measures an agent (code + prompt + manifest + model), makes a fresh key, attests, returns an `AgentClient` | T5.1 |
 | `manifests/*.yaml` | Per agent: `agent_id`, role, prompt file, tool list, model id, code paths | T5.1 |
 | `scripted/` | Deterministic agents, no LLM: `normal_expense`, `injected_expense`, `wire_bot` | T5.2 |
