@@ -309,19 +309,19 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     5. audit `verify()` passes
 
 ## Phase 6: Attacks + evaluation (Days 13–15)
-- [ ] **T6.1 Attack scripts A1–A9** ∥
+- [x] **T6.1 Attack scripts A1–A9** ∥
   - **Deps:** T5.5
   - **Files:** `attacks/a1_tampered_agent.py` … `attacks/a9_fake_approval.py`, `attacks/common.py`
   - **Interface:** each exposes `run(mode) -> AttackResult(name, succeeded: bool, blocked_by: str | None, reason_code, evidence)`.
   - **Accept:** each script runs against the in-process stack in both modes.
-- [ ] **T6.2 Results table**
+- [x] **T6.2 Results table**
   - **Deps:** T6.1
   - **Files:** `attacks/run_all.py`, `tests/e2e/test_attacks.py`, `docs/results.md` (generated)
   - **Accept:**
     - in `aimfa` mode, every attack has `succeeded=False`, with the expected `blocked_by` layer
     - in `baseline` mode, A1–A8 have `succeeded=True`
     - the markdown table is generated
-- [ ] **T6.3 Live LLM prompt-injection run**
+- [x] **T6.3 Live LLM prompt-injection run** (code + unit tests done; live run waits for the Live test session)
   - **Deps:** T5.3, T6.2
   - **Files:** `scripts/run_agent.py` (added 2026-11-12: nothing yet launches an agent against the *running* services)
   - **Behavior:** `python scripts/run_agent.py <manifest>` (`normal_expense`, `injected_expense`, `wire_bot`, `llm_expense`) launches through the real `Launcher` against `run_demo.py`'s services, runs the scripted agent or `run_llm_agent` with `TamuAIClient`, and prints the transcript. It never prints keys or tokens.

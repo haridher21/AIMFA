@@ -102,7 +102,9 @@ Plus a **tamper-proof logbook**. Every entry contains a fingerprint of the entry
 | The real LLM agent | `aimfa/agents/llm.py` (TAMU AI client), `llm_agent.py` (the tool loop, 15-step cap) (Phase 5) |
 | Starting everything with one command | `scripts/run_demo.py` (Phase 5) |
 | The whole story in one test | `tests/e2e/test_happy_path.py` (Phase 5) |
-| The attacks | `attacks/` (Phase 6) |
+| The attacks | `attacks/` (Phase 6). Each `aNN_*.py` has a `run(mode)` and a docstring saying what it does and why it is stopped. `common.py` builds a throwaway stack per attack and judges success by real effects (outbox, bank balance, HTTP status, audit verify) |
+| The results table (baseline vs AIMFA) | `attacks/run_all.py` writes `docs/results.md`; `tests/e2e/test_attacks.py` checks it (Phase 6) |
+| Running one agent against the live demo | `scripts/run_agent.py <manifest>` (Phase 6) |
 
 ### The launcher, in plain English
 Phase 5 adds **the front desk that issues ID cards**. An agent can't vouch for itself, because a tampered agent would simply lie. So a trusted **launcher** does it instead. It fingerprints the agent's code files, its system prompt, its tool list and its model name, then makes a brand-new key that lives only in memory. It signs all of that together with a one-time number (a nonce) from the control plane. The control plane compares the fingerprint to the "golden" one that was registered earlier. Change one character of the prompt and the fingerprints no longer match, so no ID card is issued (`ATTEST_MEASUREMENT_MISMATCH`). The agent's private key is never saved to disk, so there is no key file to steal. The LLM agent reads its system prompt **only** from the measured manifest. Otherwise someone could swap the prompt after the fingerprint was taken.
