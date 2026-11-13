@@ -200,7 +200,7 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
   - **Accept:** works against the T3.1 in-process fixture, including the approve and deny paths.
 
 ## Phase 4: Monitor + human step-up (Days 9–11)
-- [ ] **T4.1 Behavioral monitor**
+- [x] **T4.1 Behavioral monitor**
   - **Deps:** T1.5, T2.3
   - **Files:** `aimfa/control_plane/monitor.py`, `tests/unit/test_monitor.py`
   - **Rules:**
@@ -223,14 +223,14 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - decay lowers the score over time
     - crossing 80 quarantines, and then `/attest` and `/token` are refused
     - clear-quarantine resets the agent
-- [ ] **T4.2 Wire monitor into gateway**
+- [x] **T4.2 Wire monitor into gateway**
   - **Deps:** T3.1, T4.1
   - **Files:** `aimfa/gateway/pipeline.py`, `tests/integration/test_gateway_risk.py`
   - **Accept:**
     - an elevated score makes a medium action (internal email) return 202
     - a quarantine mid-task makes the next call 403 `AGENT_QUARANTINED`
     - an expense agent reading `/engineering/...` with a broad test token still gets risk points (out-of-profile)
-- [ ] **T4.3 Human approvals (push + TOTP)**
+- [x] **T4.3 Human approvals (push + TOTP)**
   - **Deps:** T3.1, T2.1
   - **Already done in Phase 3:** the approval routes in `approvals.py` (create, consume, poll, decide with TOTP and one-time codes), tested in `tests/integration/test_approval_routes.py`. **Still to do:** `notify.py` (the `TODO(T4.3)` hook in create), the enroll script, a risk event on deny, and the remaining Accept bullets (ntfy content, ntfy failure).
   - **Files:**

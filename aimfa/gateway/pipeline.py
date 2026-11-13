@@ -68,8 +68,18 @@ class RiskMonitor(Protocol):
     def report(self, event: RiskEvent) -> RiskScore: ...
 
 
+class ControlPlaneMonitor:
+    """The real monitor: forwards events to the control plane and returns its score."""
+
+    def __init__(self, cp: ControlPlaneClient) -> None:
+        self._cp = cp
+
+    def report(self, event: RiskEvent) -> RiskScore:
+        return self._cp.report_event(event)
+
+
 class StubMonitor:
-    """Placeholder until the real monitor is wired in (T4.2): never raises the score."""
+    """Test double: never raises the score. NOT used by default any more."""
 
     def report(self, event: RiskEvent) -> RiskScore:
         return RiskScore(
@@ -247,10 +257,12 @@ def report_risk(
     event = RiskEvent(
         agent_id=claims.sub,
         task_id=claims.task_id,
-        event_type=EventType.TOOL_ALLOWED,  # TODO(T4.2): sensitive/external/out-of-profile
+        event_type=EventType.TOOL_ALLOWED,
         tool=action.tool,
         target=action.target,
         timestamp=now,
+        # The monitor decides out-of-profile and exfiltration from these two facts.
+        details={"category": action.category, "sensitive": action.sensitive},
     )
     try:
         score = monitor.report(event)
@@ -259,6 +271,44 @@ def report_risk(
     if score.status is AgentStatus.QUARANTINED:
         raise ApiError(403, ReasonCode.AGENT_QUARANTINED, "agent is quarantined")
     return score
+
+
+def denial_event_type(code: ReasonCode) -> EventType | None:
+    """Which monitor event a verified agent's denial counts as (None = not reported)."""
+    if code is ReasonCode.SCOPE_DENIED:
+        return EventType.SCOPE_DENIED
+    if code is ReasonCode.ACTION_FORBIDDEN:
+        return EventType.ACTION_FORBIDDEN
+    if code.value.startswith("DPOP_"):
+        return EventType.DPOP_FAILURE
+    if code is ReasonCode.TOKEN_REVOKED:
+        return EventType.TOKEN_FAILURE
+    return None
+
+
+def report_denial(ctx: GatewayContext, trace: Trace, err: ApiError) -> None:
+    """Tell the monitor about a denial, best effort.
+
+    Only for an agent whose token signature we verified (``trace.actor`` is set after step 2);
+    an unauthenticated caller must not be able to raise someone else's risk. A monitor
+    failure is logged and never changes the denial that is returned.
+    """
+    event_type = denial_event_type(err.reason_code)
+    if event_type is None or trace.actor == "unknown":
+        return
+    try:
+        ctx.monitor.report(
+            RiskEvent(
+                agent_id=trace.actor,
+                task_id=trace.task_id,
+                event_type=event_type,
+                tool=trace.tool,
+                target=trace.target,
+                timestamp=ctx.now(),
+            )
+        )
+    except Exception as exc:  # the call is denied regardless
+        logger.warning("risk monitor unavailable for denial (%s)", type(exc).__name__)
 
 
 def approval_reason(tier: Tier, risk: RiskScore) -> ApprovalReason | None:
@@ -315,7 +365,9 @@ def request_approval(
                 risk_score=risk.score,
             )
         )
-    except ControlPlaneError:
+    except ControlPlaneError as err:
+        if err.reason_code is ReasonCode.RATE_LIMITED:  # too many parked approvals: a real denial
+            raise ApiError(403, ReasonCode.RATE_LIMITED, "too many pending approvals") from None
         raise ApiError(502, ReasonCode.UPSTREAM_ERROR, "approval service unavailable") from None
     return rec.approval_id
 
@@ -424,6 +476,7 @@ def process_tool_call(
         verdict = evaluate(ctx, raw, authorization, dpop, trace)
     except ApiError as err:
         record_denial(ctx, trace, err, request_id)
+        report_denial(ctx, trace, err)
         raise
     except Exception:
         # A bug or surprise in any step must still DENY and still be on record (rule 10),

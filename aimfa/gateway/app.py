@@ -22,9 +22,9 @@ from aimfa.common.policy import Policy
 from aimfa.gateway.baseline import baseline_tool_call
 from aimfa.gateway.cp_client import ControlPlaneClient, HttpControlPlaneClient
 from aimfa.gateway.pipeline import (
+    ControlPlaneMonitor,
     GatewayContext,
     RiskMonitor,
-    StubMonitor,
     process_tool_call,
     utc_now,
 )
@@ -65,7 +65,7 @@ def create_app(
         policy=Policy.load(settings.policy_dir),
         cp=control_plane_client,
         resources=resources_http,
-        monitor=monitor or StubMonitor(),
+        monitor=monitor or ControlPlaneMonitor(control_plane_client),
         replay=ReplayCache(settings.dpop_max_age_seconds),
         clock=clock or utc_now,
     )

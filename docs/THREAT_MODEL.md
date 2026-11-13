@@ -61,3 +61,5 @@
 - **Shared-secret service auth and no TLS.** Acceptable for localhost only.
 - **In-memory replay cache.** It is lost on gateway restart. This is mitigated by the 60-second `iat` window.
 - **Bypass via fresh tasks.** A hijacked agent could request a fresh task token. The monitor's score is per **agent**, not per task, so its risk carries over.
+- **Accepted risk: self-inflicted quarantine via a stolen token.** A token with a valid signature but used WITHOUT its DPoP key still earns its agent `DPOP_*` risk points, so a thief can push that agent toward quarantine. This is by design: it fails toward safety (the stolen token dies and the agent needs an admin to clear it).
+- **Per-approver lockout can be triggered by an attacker.** Five wrong codes lock that approver's decisions for 10 minutes. We accept this denial of service over letting the 6-digit code be guessed; counters are in memory and reset on restart.

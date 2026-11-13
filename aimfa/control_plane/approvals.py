@@ -4,19 +4,22 @@ When an action is risky, the gateway asks here for a human to approve THAT exact
 The human proves they are present with a TOTP code. The approval can be used by exactly one
 tool call, only for the same action hash, and only before it expires.
 
-Push notifications (ntfy) are T4.3 and not part of this module yet.
+A push notification (see notify.py) rings the approver's phone; the TOTP is typed only in
+the dashboard. Five wrong codes lock an approval, so a code cannot be guessed.
 """
 
 from __future__ import annotations
 
 import hmac
+import logging
 import secrets
+import threading
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 import pyotp
-from fastapi import APIRouter, Depends, Header, Path
+from fastapi import APIRouter, Depends, Header, Path, Response
 
 from aimfa.common.crypto import action_hash
 from aimfa.common.http import ApiError
@@ -30,13 +33,22 @@ from aimfa.common.models import (
     AuditAppend,
     AuditRecord,
     DecisionOutcome,
+    EventType,
     ReasonCode,
+    RiskEvent,
 )
+from aimfa.control_plane.monitor import RiskMonitor
+from aimfa.control_plane.notify import Notifier
 from aimfa.control_plane.revocation import introspect
 from aimfa.control_plane.state import CPState
 from aimfa.control_plane.sts import check_dpop, parse_dpop_authorization, verify_access_token
 
+logger = logging.getLogger(__name__)
+
 TOTP_STEP_SECONDS = 30
+MAX_WRONG_CODES = 5
+APPROVER_LOCK_WINDOW = timedelta(minutes=10)
+MAX_PENDING_PER_AGENT = 3
 APPROVAL_ID_PATTERN = r"^[A-Za-z0-9_-]{1,64}$"
 
 _LIVE = (ApprovalStatus.PENDING, ApprovalStatus.APPROVED)
@@ -87,12 +99,24 @@ def matching_totp_step(seed: str, code: str, now: datetime) -> int | None:
 
 
 def make_router(
-    state: CPState, require_admin: Callable[..., None], require_internal: Callable[..., None]
+    state: CPState,
+    require_admin: Callable[..., None],
+    require_internal: Callable[..., None],
+    *,
+    notifier: Notifier,
+    monitor: RiskMonitor,
 ) -> APIRouter:
     router = APIRouter()
     internal = APIRouter(prefix="/internal", dependencies=[Depends(require_internal)])
     db = state.db
     base = state.settings.control_plane_url
+    # Wrong-code counter per approval. In memory on purpose (simple); a restart resets it,
+    # which is accepted because the approval itself expires in minutes.
+    wrong_codes: dict[str, int] = {}
+    wrong_lock = threading.Lock()
+    # Per APPROVER: (wrong codes, when the window started). An agent can create many approvals,
+    # so a per-approval limit alone would give it fresh guesses at the same 6-digit code.
+    approver_wrong: dict[str, tuple[int, datetime]] = {}
 
     def refresh(rec: ApprovalRecord) -> ApprovalStatus:
         """Current status; persist EXPIRED the first time we notice (best effort)."""
@@ -113,7 +137,7 @@ def make_router(
     # ---- internal: gateway -> control plane --------------------------------------------
 
     @internal.post("/approvals", status_code=201)
-    def create_approval(req: ApprovalCreate) -> ApprovalRecord:
+    def create_approval(req: ApprovalCreate, response: Response) -> ApprovalRecord:
         agent = db.get_agent(req.agent_id)
         if agent is None:
             raise state.deny(
@@ -132,6 +156,25 @@ def make_router(
                 actor="gateway", event="approval.create_denied", agent_id=req.agent_id,
             )  # fmt: skip
         now = state.now()
+        # The same pending action asked twice is ONE approval and ONE push: an agent that
+        # retries in a loop must not be able to flood the approver's phone.
+        for existing in db.list_approvals(ApprovalStatus.PENDING):
+            if hmac.compare_digest(existing.action_hash, req.action_hash) and (
+                effective_status(existing, now) is ApprovalStatus.PENDING
+            ):
+                response.status_code = 200
+                return existing
+        pending = [
+            a
+            for a in db.list_approvals(ApprovalStatus.PENDING)
+            if a.agent_id == req.agent_id and effective_status(a, now) is ApprovalStatus.PENDING
+        ]
+        if len(pending) >= MAX_PENDING_PER_AGENT:
+            # Each approval is a new phone buzz and new guesses at the code: cap them per agent.
+            raise state.deny(
+                429, ReasonCode.RATE_LIMITED, "too many pending approvals",
+                actor="gateway", event="approval.create_denied", agent_id=req.agent_id,
+            )  # fmt: skip
         rec = ApprovalRecord(
             **req.model_dump(),
             approval_id=secrets.token_urlsafe(16),
@@ -146,8 +189,10 @@ def make_router(
             approval_id=rec.approval_id, task_id=req.task_id, tool=req.tool,
             approver_id=rec.approver_id, approval_reason=req.reason.value,
         )  # fmt: skip
-        # TODO(T4.3): send the ntfy push to the approver here. It must never block or fail
-        # this request: a push outage must not stop the approval from existing.
+        try:
+            notifier.send(rec)
+        except Exception as err:  # a push outage must not stop the approval from existing
+            logger.warning("notifier failed (%s)", type(err).__name__)
         return rec
 
     @internal.post("/approvals/{approval_id}/consume")
@@ -270,7 +315,42 @@ def make_router(
                 actor=actor, event=event, approval_id=approval_id,
             )  # fmt: skip
 
+        now = state.now()
+        with wrong_lock:
+            n, started = approver_wrong.get(rec.approver_id, (0, now))
+            if now - started >= APPROVER_LOCK_WINDOW:
+                approver_wrong.pop(rec.approver_id, None)
+                n = 0
+            locked_out = n >= MAX_WRONG_CODES
+        if locked_out:
+            # No code check at all: even a correct code is refused until the window passes.
+            raise state.deny(
+                401, ReasonCode.APPROVAL_INVALID_TOTP, "approver or code not accepted",
+                actor=actor, event="approval.approver_locked", approval_id=approval_id,
+            )  # fmt: skip
+
         def bad_totp() -> ApiError:
+            with wrong_lock:
+                wrong_codes[approval_id] = count = wrong_codes.get(approval_id, 0) + 1
+                n2, start2 = approver_wrong.get(rec.approver_id, (0, now))
+                approver_wrong[rec.approver_id] = (n2 + 1, start2)
+                tripped = n2 + 1 == MAX_WRONG_CODES
+            if tripped:
+                state.audit(
+                    actor, "approval.approver_lockout", DecisionOutcome.DENY,
+                    ReasonCode.APPROVAL_INVALID_TOTP, approver_id=rec.approver_id,
+                )  # fmt: skip
+            if count >= MAX_WRONG_CODES:
+                # Lock: a 6-digit code must not be brute-forced within the approval's lifetime.
+                db.decide_approval(
+                    approval_id, approver_id=rec.approver_id, approve=False, now=state.now()
+                )
+                with wrong_lock:
+                    wrong_codes.pop(approval_id, None)
+                state.audit(
+                    actor, "approval.locked", DecisionOutcome.DENY, ReasonCode.APPROVAL_DENIED,
+                    approval_id=approval_id,
+                )  # fmt: skip
             return state.deny(
                 401, ReasonCode.APPROVAL_INVALID_TOTP, "approver or code not accepted",
                 actor=actor, event=event, approval_id=approval_id,
@@ -286,6 +366,9 @@ def make_router(
         if step is None or not db.mark_totp_step_used(rec.approver_id, step):
             raise bad_totp()
 
+        with wrong_lock:
+            wrong_codes.pop(approval_id, None)
+            approver_wrong.pop(rec.approver_id, None)  # a correct code clears the streak
         if not db.decide_approval(
             approval_id, approver_id=rec.approver_id, approve=req.approve, now=state.now()
         ):
@@ -296,7 +379,18 @@ def make_router(
         if req.approve:
             state.audit(actor, "approval.approved", DecisionOutcome.ALLOW, approval_id=approval_id)
         else:
-            # TODO(T4.x): report an APPROVAL_DENIED risk event to the monitor.
+            try:
+                monitor.record(
+                    RiskEvent(
+                        agent_id=rec.agent_id,
+                        task_id=rec.task_id,
+                        tool=rec.tool,
+                        event_type=EventType.APPROVAL_DENIED,
+                        timestamp=state.now(),
+                    )  # fmt: skip
+                )
+            except Exception as err:  # the denial already stands; do not turn it into a 500
+                logger.warning("risk event for denied approval failed (%s)", type(err).__name__)
             state.audit(
                 actor, "approval.denied", DecisionOutcome.DENY, ReasonCode.APPROVAL_DENIED,
                 approval_id=approval_id,

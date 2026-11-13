@@ -25,6 +25,8 @@ from aimfa.common.models import (
     IntrospectRequest,
     IntrospectResponse,
     ReasonCode,
+    RiskEvent,
+    RiskScore,
 )
 
 _M = TypeVar("_M", bound=BaseModel)
@@ -53,6 +55,8 @@ class ControlPlaneClient(Protocol):
     def create_approval(self, req: ApprovalCreate) -> ApprovalRecord: ...
 
     def consume_approval(self, approval_id: str, req: ApprovalConsumeRequest) -> ApprovalRecord: ...
+
+    def report_event(self, event: RiskEvent) -> RiskScore: ...
 
 
 class HttpControlPlaneClient:
@@ -97,6 +101,11 @@ class HttpControlPlaneClient:
     def create_approval(self, req: ApprovalCreate) -> ApprovalRecord:
         data = self._send("POST", "/internal/approvals", req.model_dump(mode="json"))
         return self._parse(ApprovalRecord, data)
+
+    def report_event(self, event: RiskEvent) -> RiskScore:
+        """Send one behavior event to the monitor; get the agent's updated score back."""
+        data = self._send("POST", "/internal/events", event.model_dump(mode="json"))
+        return self._parse(RiskScore, data)
 
     def consume_approval(self, approval_id: str, req: ApprovalConsumeRequest) -> ApprovalRecord:
         # approval_id came from an agent: quote it so it can only ever be ONE path segment

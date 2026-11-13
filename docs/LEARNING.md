@@ -92,11 +92,16 @@ Plus a **tamper-proof logbook**. Every entry contains a fingerprint of the entry
 | The fake company systems the agent attacks | `aimfa/resources/app.py`, `store.py`, `seed_data/` (Phase 2) |
 | The checkpoint | `aimfa/gateway/pipeline.py` (Phase 3). Read `evaluate()` top to bottom: it is the ten steps in order |
 | How an agent talks to AIMFA | `aimfa/agents/client.py` (Phase 3) |
-| The behavior guard | `aimfa/control_plane/monitor.py` (Phase 4) |
-| Human approvals | `aimfa/control_plane/approvals.py` (routes + TOTP check landed in Phase 3; phone push in Phase 4) |
+| The behavior guard | `aimfa/control_plane/monitor.py` (Phase 4). Start at `score_event()`: one pure function holds every rule. The gateway side is `ControlPlaneMonitor` and `report_denial()` in `aimfa/gateway/pipeline.py` |
+| Human approvals | `aimfa/control_plane/approvals.py` (routes + TOTP check from Phase 3; lockouts and the pending cap from Phase 4), `notify.py` (the phone push, Phase 4), `scripts/enroll_approver.py` (QR for the authenticator app, Phase 4) |
 | How the gateway reaches the resources (and why it can't reach `/admin`) | `aimfa/gateway/proxy.py` (Phase 3) |
 | "The old way" we compare against | `aimfa/gateway/baseline.py` (Phase 3) |
 | The attacks | `attacks/` (Phase 6) |
+
+### The risk score and push-then-TOTP approvals, in plain English
+**Risk score.** Think of a "suspicion meter" per agent. Odd behavior adds points: touching things outside its job (+50), being told "no" (+30), a failed key check (+15), a human rejecting its request (+25), reading a secret and then emailing outside the company in the same task (+60). Points fade a little every minute, so one slip is forgiven but a streak is not. At 50 the gateway asks a human even for medium actions; at 80 the agent is quarantined and every badge it holds is cancelled until an admin clears it.
+
+**Push, then TOTP.** When a human must approve, their phone gets a "doorbell" push (ntfy) that says *which agent, which tool, how risky* and links to our dashboard, never the action's data and never a request for a code. The six-digit TOTP is typed only in the dashboard. A fake notification therefore has nothing to steal. Five wrong codes lock that approval, and five wrong codes from one approver within 10 minutes lock that *approver* for a while, so an attacker can't get fresh guesses by triggering new approvals. A duplicate request reuses the same approval instead of buzzing the phone again, and an agent can have at most 3 approvals waiting at once (no spamming the human into clicking "yes").
 
 ### The checkpoint pipeline, in plain English
 Every tool call walks past ten guards in a fixed order, and **the first guard that says no ends the walk**: nothing reaches the company systems. Cheap questions come first (is there a badge? is it genuine and unexpired?), then "does the badge's owner hold the key?" (DPoP), then "has the badge been cancelled?", then "is this a real tool, with clean arguments?", then "is it inside the badge's scopes?", then "does it need a human?". Only then does the gateway use its own secret to call the resource. Two habits matter most: the gateway **writes the decision to the audit log first** (if it cannot, it refuses), and it uses the **cleaned-up path** it checked, never the raw one the agent sent. `AIMFA_MODE=baseline` skips all of this and checks one shared password, which is how we show what the attacks do without AIMFA.
