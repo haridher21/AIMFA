@@ -13,7 +13,7 @@ from datetime import datetime
 import httpx
 from fastapi import FastAPI
 
-from aimfa.common.config import Settings
+from aimfa.common.config import Settings, get_settings
 from aimfa.common.db import Database
 from aimfa.common.dpop import ReplayCache
 from aimfa.common.http import install_error_handling, require_strong_secrets
@@ -81,3 +81,8 @@ def create_app(
         )
     )
     return app
+
+
+def app_factory() -> FastAPI:
+    """Zero-arg entry point for ``uvicorn --factory`` (settings come from .env)."""
+    return create_app(get_settings())

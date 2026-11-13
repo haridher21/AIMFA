@@ -251,7 +251,7 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - with ntfy disabled or failing, the approval still works (failure is logged)
 
 ## Phase 5: Agents + end-to-end (Days 11–13)
-- [ ] **T5.1 Launcher**
+- [x] **T5.1 Launcher**
   - **Deps:** T2.2, T3.3
   - **Files:**
     - `aimfa/agents/launcher.py`
@@ -266,12 +266,12 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - a launch succeeds for an unmodified agent
     - editing one character of the prompt file → `ATTEST_MEASUREMENT_MISMATCH`
     - the private key is never written to disk
-- [ ] **T5.2 Scripted agents** ∥
+- [x] **T5.2 Scripted agents** ∥
   - **Deps:** T3.3
   - **Files:** `aimfa/agents/scripted/{normal_expense,injected_expense,wire_bot}.py`
   - **Behavior:** deterministic, with no LLM. `injected_expense` "obeys" `vendor_note.txt`.
   - **Accept:** each runs to completion against the in-process stack and returns a transcript of `(tool, decision)`.
-- [ ] **T5.3 TAMU AI agent**
+- [x] **T5.3 TAMU AI agent** (code + fake-LLM tests done 2026-11-12. **Still manual:** the 1 normal + 3 injection live runs, transcripts in `docs/results/`)
   - **Deps:** T0.5, T3.3
   - **Files:** `aimfa/agents/llm.py`, `aimfa/agents/llm_agent.py`, `tests/unit/test_llm_agent.py`
   - **Behavior:**
@@ -282,7 +282,7 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - unit tests use a fake `LLMClient` (no network)
     - a manual live run completes the normal expense task
     - the injection is observed in at least 1 of 3 live runs; record the transcripts in `docs/results/`
-- [ ] **T5.4 One-command demo runner**
+- [x] **T5.4 One-command demo runner** (code + secret-refusal test done 2026-11-12. **Still manual:** a real run on Windows and macOS, steps in `docs/DEMO.md`)
   - **Deps:** T4.3, T5.1
   - **Files:** `scripts/run_demo.py`
   - **Behavior:**
@@ -298,7 +298,7 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
   - **Accept:**
     - works on Windows and macOS; a manual check by two teammates
     - a test shows the default-secret refusal
-- [ ] **T5.5 E2E happy path**
+- [x] **T5.5 E2E happy path**
   - **Deps:** T5.1, T5.2, T4.3
   - **Files:** `tests/e2e/test_happy_path.py`
   - **Accept:**

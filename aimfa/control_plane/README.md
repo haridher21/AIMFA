@@ -25,3 +25,5 @@ This service is the **Policy Decision Point** and the identity provider. Its end
 **Accepted risks:** the wrong-code counter is in memory (a restart resets it; the approval expires in minutes anyway). The risk score is recomputed from stored events on each read (fine at prototype scale).
 
 **Tests:** `tests/unit/test_audit.py`, `tests/unit/test_monitor.py`, `tests/integration/test_{admin,attestation,sts,approvals,approval_routes,monitor_api}.py`
+
+**Entry point:** `app_factory()` is a zero-arg factory for `uvicorn aimfa.control_plane.app:app_factory --factory` (used by `scripts/run_demo.py`).

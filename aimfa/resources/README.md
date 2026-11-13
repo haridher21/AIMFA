@@ -20,3 +20,5 @@
 - **Allow paths outside the data root.** This re-checks traversal as defense in depth, even though the gateway already checks.
 
 **Task:** T2.4 · **Tests:** `tests/integration/test_resources.py`
+
+**Entry point:** `app_factory()` is a zero-arg factory for `uvicorn aimfa.resources.app:app_factory --factory` (used by `scripts/run_demo.py`).

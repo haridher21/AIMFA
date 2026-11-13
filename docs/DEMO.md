@@ -11,6 +11,9 @@
 - [ ] The dashboard is open at http://127.0.0.1:8501, the projector is mirrored, and the font is enlarged
 - [ ] The backup video is on the laptop desktop
 
+## One-command start
+`python scripts/run_demo.py --reset` starts the control plane, gateway, resources and (once T7.1 exists) the dashboard on 127.0.0.1, waits for `/health`, registers the launcher and agents, and enrolls the approver (the QR is printed once: scan it). Add `--mode baseline` for the old-way comparison and `--reset-keys` to also regenerate keys. It refuses to start while any secret in `.env` is a `change-me*` default or under 16 chars. Ctrl+C stops everything.
+
 ## Script
 | Time | Beat | What the audience sees | Say |
 |---|---|---|---|

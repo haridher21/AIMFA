@@ -1,0 +1,12 @@
+agent_id: llm-expense-bot
+role: expense_reader
+description: LLM-driven expense summarizer (TAMU AI)
+model_id: protected.Claude-Opus-5
+prompt_file: prompts/llm_expense.md
+tools: [list_files, read_file, send_email]
+code_paths:
+  - aimfa/agents/llm.py
+  - aimfa/agents/llm_agent.py
+  - aimfa/agents/client.py
+  - aimfa/common/dpop.py
+  - aimfa/common/crypto.py

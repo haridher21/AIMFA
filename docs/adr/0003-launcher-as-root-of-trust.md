@@ -22,3 +22,6 @@ A trusted **launcher** process holds its own Ed25519 key, which is registered wi
 ## Consequences
 - **Gained:** factor 1 is demonstrable (A1), and the code maps 1:1 onto SPIRE concepts (attestor, SVID).
 - **Accepted risk:** **a compromised launcher, or code that modifies the agent after measurement, defeats attestation.** This is documented in THREAT_MODEL §3 and §6.
+
+## Implementation (T5.1)
+`aimfa/agents/launcher.py`: the agent runs in the launcher's process. The per-instance key is an in-memory object handed straight to `AgentClient` and is never saved. The launcher's own long-term key is stored in `keys/launcher.pem` (git-ignored), like a host key, and its public half is registered with `scripts/register_agents.py`. The system prompt is read only from the manifest's prompt file, which is part of the measurement.

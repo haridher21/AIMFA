@@ -14,7 +14,7 @@ import httpx
 from fastapi import Depends, FastAPI, Header, Request
 from fastapi.responses import JSONResponse
 
-from aimfa.common.config import Settings
+from aimfa.common.config import Settings, get_settings
 from aimfa.common.dpop import ReplayCache
 from aimfa.common.http import install_error_handling, require_strong_secrets
 from aimfa.common.models import Mode, ToolCallResponse
@@ -104,3 +104,8 @@ def create_app(
             return _json(status, body)
 
     return app
+
+
+def app_factory() -> FastAPI:
+    """Zero-arg entry point for ``uvicorn --factory`` (settings come from .env)."""
+    return create_app(get_settings())

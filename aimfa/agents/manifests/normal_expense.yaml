@@ -1,0 +1,12 @@
+agent_id: expense-bot
+role: expense_reader
+description: Scripted benign expense summarizer
+model_id: scripted
+prompt_file: prompts/normal_expense.md
+tools: [list_files, read_file, send_email]
+code_paths:
+  - aimfa/agents/scripted/normal_expense.py
+  - aimfa/agents/scripted/__init__.py
+  - aimfa/agents/client.py
+  - aimfa/common/dpop.py
+  - aimfa/common/crypto.py

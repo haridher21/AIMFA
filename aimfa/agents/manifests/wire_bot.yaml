@@ -1,0 +1,12 @@
+agent_id: wire-bot
+role: finance_ops
+description: Scripted finance agent that pays approved vendors
+model_id: scripted
+prompt_file: prompts/wire_bot.md
+tools: [list_files, read_file, query_db, wire_transfer, send_email]
+code_paths:
+  - aimfa/agents/scripted/wire_bot.py
+  - aimfa/agents/scripted/__init__.py
+  - aimfa/agents/client.py
+  - aimfa/common/dpop.py
+  - aimfa/common/crypto.py

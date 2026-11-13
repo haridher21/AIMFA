@@ -11,7 +11,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, FastAPI, Header, Query, Response
 from pydantic import BaseModel, ConfigDict, Field
 
-from aimfa.common.config import Settings
+from aimfa.common.config import Settings, get_settings
 from aimfa.common.http import (
     ApiError,
     install_error_handling,
@@ -106,3 +106,8 @@ def _table(raw: str) -> str:
         return validate_table(raw)
     except PolicyError:
         raise ApiError(400, ReasonCode.INVALID_ARGUMENTS, "invalid table name") from None
+
+
+def app_factory() -> FastAPI:
+    """Zero-arg entry point for ``uvicorn --factory`` (settings come from .env)."""
+    return create_app(get_settings())

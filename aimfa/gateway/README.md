@@ -21,3 +21,5 @@ The decision is audited BEFORE anything is forwarded; if the audit write fails, 
 - **Skip the audit record** for any decision.
 
 **Tests:** `tests/integration/test_gateway.py`, `test_gateway_risk.py`, `test_baseline.py`
+
+**Entry point:** `app_factory()` is a zero-arg factory for `uvicorn aimfa.gateway.app:app_factory --factory` (used by `scripts/run_demo.py`).

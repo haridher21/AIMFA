@@ -96,7 +96,16 @@ Plus a **tamper-proof logbook**. Every entry contains a fingerprint of the entry
 | Human approvals | `aimfa/control_plane/approvals.py` (routes + TOTP check from Phase 3; lockouts and the pending cap from Phase 4), `notify.py` (the phone push, Phase 4), `scripts/enroll_approver.py` (QR for the authenticator app, Phase 4) |
 | How the gateway reaches the resources (and why it can't reach `/admin`) | `aimfa/gateway/proxy.py` (Phase 3) |
 | "The old way" we compare against | `aimfa/gateway/baseline.py` (Phase 3) |
+| The trusted launcher (who fingerprints the agent and vouches for it) | `aimfa/agents/launcher.py` (Phase 5). Read `launch()`: challenge → measure → fresh key → signed evidence → ID card. Each agent's recipe is a `aimfa/agents/manifests/*.yaml` file plus its prompt in `manifests/prompts/` |
+| Registering the "golden" fingerprints | `scripts/register_agents.py` (Phase 5) |
+| Demo agents without an LLM | `aimfa/agents/scripted/` (Phase 5): `normal_expense` (well-behaved), `injected_expense` (obeys the poisoned vendor note), `wire_bot` (a wire that needs a human) |
+| The real LLM agent | `aimfa/agents/llm.py` (TAMU AI client), `llm_agent.py` (the tool loop, 15-step cap) (Phase 5) |
+| Starting everything with one command | `scripts/run_demo.py` (Phase 5) |
+| The whole story in one test | `tests/e2e/test_happy_path.py` (Phase 5) |
 | The attacks | `attacks/` (Phase 6) |
+
+### The launcher, in plain English
+Phase 5 adds **the front desk that issues ID cards**. An agent can't vouch for itself, because a tampered agent would simply lie. So a trusted **launcher** does it instead. It fingerprints the agent's code files, its system prompt, its tool list and its model name, then makes a brand-new key that lives only in memory. It signs all of that together with a one-time number (a nonce) from the control plane. The control plane compares the fingerprint to the "golden" one that was registered earlier. Change one character of the prompt and the fingerprints no longer match, so no ID card is issued (`ATTEST_MEASUREMENT_MISMATCH`). The agent's private key is never saved to disk, so there is no key file to steal. The LLM agent reads its system prompt **only** from the measured manifest. Otherwise someone could swap the prompt after the fingerprint was taken.
 
 ### The risk score and push-then-TOTP approvals, in plain English
 **Risk score.** Think of a "suspicion meter" per agent. Odd behavior adds points: touching things outside its job (+50), being told "no" (+30), a failed key check (+15), a human rejecting its request (+25), reading a secret and then emailing outside the company in the same task (+60). Points fade a little every minute, so one slip is forgiven but a streak is not. At 50 the gateway asks a human even for medium actions; at 80 the agent is quarantined and every badge it holds is cancelled until an admin clears it.

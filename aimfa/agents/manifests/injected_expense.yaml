@@ -1,0 +1,12 @@
+agent_id: injected-expense-bot
+role: expense_reader
+description: Scripted expense agent that obeys a prompt injection found in a file
+model_id: scripted
+prompt_file: prompts/injected_expense.md
+tools: [list_files, read_file, send_email]
+code_paths:
+  - aimfa/agents/scripted/injected_expense.py
+  - aimfa/agents/scripted/__init__.py
+  - aimfa/agents/client.py
+  - aimfa/common/dpop.py
+  - aimfa/common/crypto.py
