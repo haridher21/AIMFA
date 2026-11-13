@@ -323,7 +323,11 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - the markdown table is generated
 - [ ] **T6.3 Live LLM prompt-injection run**
   - **Deps:** T5.3, T6.2
-  - **Accept:** a recorded transcript + audit excerpt in `docs/results/a4_live.md`.
+  - **Files:** `scripts/run_agent.py` (added 2026-11-12: nothing yet launches an agent against the *running* services)
+  - **Behavior:** `python scripts/run_agent.py <manifest>` (`normal_expense`, `injected_expense`, `wire_bot`, `llm_expense`) launches through the real `Launcher` against `run_demo.py`'s services, runs the scripted agent or `run_llm_agent` with `TamuAIClient`, and prints the transcript. It never prints keys or tokens.
+  - **Accept:**
+    - unit tests for argument parsing and manifest selection (no network)
+    - the live run itself waits for the **Live test session** in Phase 7, where it produces a recorded transcript + audit excerpt in `docs/results/a4_live.md`
 
 ## Phase 7: Dashboard + demo polish (Days 14–17)
 - [ ] **T7.1 Streamlit dashboard**
@@ -340,6 +344,16 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
   - **Accept:**
     - a manual walkthrough of `docs/DEMO.md` works end to end
     - the admin key is never displayed
+- [ ] **Live test session** (manual, right after T7.1; all live testing was deferred to here on 2026-11-12)
+  - **Setup:**
+    - `.env`: four strong secrets (`python -c "import secrets; print(secrets.token_urlsafe(32))"`), a long random `NTFY_TOPIC`, `NTFY_ENABLED=true`, `TAMU_AI_API_KEY`
+    - phone: ntfy app subscribed to the topic on ntfy.sh, plus an authenticator app
+    - `python scripts/run_demo.py --reset`, then scan the printed QR into the authenticator
+  - **Checks (each closes a manual Accept item):**
+    - T5.4: services start on Windows (and macOS); Ctrl+C stops them all; a `change-me` secret is refused
+    - push + TOTP: `run_agent.py wire_bot` → phone buzzes → approve in the dashboard with the code → wire executes
+    - T5.3: `run_agent.py llm_expense`, 1 normal run + 3 injection runs; save the transcripts in `docs/results/`
+    - T6.3: record the live injection transcript + audit excerpt in `docs/results/a4_live.md`
 - [ ] **T7.2 Demo runbook + rehearsals**
   - **Files:** `docs/DEMO.md`
   - **Accept:** 3 timed rehearsals (≤ 8 min each). A backup video is recorded.
