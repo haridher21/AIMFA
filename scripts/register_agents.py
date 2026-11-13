@@ -33,7 +33,13 @@ def _register(http: httpx.Client, path: str, body: dict, headers: dict, label: s
     elif resp.status_code == 409:
         print(f"already registered: {label}")
     else:
-        print(f"FAILED {label}: HTTP {resp.status_code}", file=sys.stderr)
+        # Error bodies are ErrorResponse (reason code + message, never secrets): show why.
+        try:
+            err = resp.json()
+            why = f" {err.get('reason_code', '')}: {err.get('message', '')}"
+        except (ValueError, AttributeError):
+            why = ""
+        print(f"FAILED {label}: HTTP {resp.status_code}{why}", file=sys.stderr)
         return False
     return True
 

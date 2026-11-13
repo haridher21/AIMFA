@@ -10,7 +10,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import SecretStr
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from aimfa.common.models import Mode
@@ -61,6 +61,14 @@ class Settings(BaseSettings):
     tamu_ai_base_url: str = "https://chat-api.tamu.ai/openai"
     tamu_ai_api_key: SecretStr = SecretStr("")
     tamu_ai_model: str = ""
+
+    @field_validator("data_dir", "keys_dir", "policy_dir")
+    @classmethod
+    def _anchor_to_repo(cls, value: Path) -> Path:
+        """A relative dir (``DATA_DIR=./var`` in .env) means "relative to the repo", not to
+        whatever folder a script was started from. Otherwise running from ``scripts/`` would
+        silently use a different database and keys than the services."""
+        return value if value.is_absolute() else REPO_ROOT / value
 
     @property
     def db_path(self) -> Path:

@@ -330,7 +330,7 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - the live run itself waits for the **Live test session** in Phase 7, where it produces a recorded transcript + audit excerpt in `docs/results/a4_live.md`
 
 ## Phase 7: Dashboard + demo polish (Days 14–17)
-- [ ] **T7.1 Streamlit dashboard**
+- [x] **T7.1 Streamlit dashboard** (code + tests done 2026-11-12. **Still manual:** the `docs/DEMO.md` walkthrough, done in the Live test session)
   - **Deps:** T4.3, T6.2
   - **Files:** `aimfa/dashboard/app.py`, `aimfa/dashboard/pages/*`
   - **Pages:**

@@ -38,6 +38,18 @@ def test_default_secrets_refused_names_only(capsys):
     assert "change-me" not in text
 
 
+def test_approver_is_enrolled_before_agents_are_registered(monkeypatch):
+    """Agents name their approver; registering them first gets 422 "unknown approver"."""
+    calls: list[str] = []
+    monkeypatch.setattr(run_demo, "service_commands", lambda s, m: [])
+    monkeypatch.setattr(run_demo, "_enroll_approver", lambda s: calls.append("enroll") or True)
+    monkeypatch.setattr(
+        run_demo.register_agents, "main", lambda *a, **k: calls.append("register") or 1
+    )
+    assert run_demo.main([], settings=_settings()) == 1  # register "fails" so main returns
+    assert calls == ["enroll", "register"]
+
+
 def test_short_secret_refused_and_good_pass():
     assert run_demo.check_secrets(_settings(admin_api_key="short")) == ["admin_api_key"]
     assert run_demo.check_secrets(_settings()) == []

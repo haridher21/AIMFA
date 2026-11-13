@@ -99,7 +99,7 @@ def service_commands(settings: Settings, mode: str) -> list[Service]:
         port = _port(settings.dashboard_url)
         argv = [py, "-m", "streamlit", "run", str(DASHBOARD_APP)]
         argv += ["--server.address", HOST, "--server.port", str(port)]
-        argv += ["--server.headless", "true"]
+        argv += ["--server.headless", "true", "--browser.gatherUsageStats", "false"]
         services.append(("dashboard", argv, f"http://{HOST}:{port}/_stcore/health"))
     return services
 
@@ -204,10 +204,12 @@ def main(argv: list[str] | None = None, *, settings: Settings | None = None) -> 
                 print(f"{name} did not become healthy; stopping", file=sys.stderr)
                 return 1
         if args.mode == "aimfa":
+            # Approver first: every agent names its approver, and the control plane rejects
+            # an agent whose approver does not exist yet (422 "unknown approver").
+            if not _enroll_approver(settings):
+                return 1
             if register_agents.main(["--skip-missing"], settings=settings) != 0:
                 print("registration failed; stopping", file=sys.stderr)
-                return 1
-            if not _enroll_approver(settings):
                 return 1
         print(f"\nAIMFA demo running ({args.mode}). Dashboard: {settings.dashboard_url}")
         print("Press Ctrl+C to stop.")
