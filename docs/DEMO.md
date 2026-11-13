@@ -2,6 +2,8 @@
 
 **Status:** outline. This is finalized in ROADMAP **T7.2** once the dashboard exists. Target length: **8 minutes**.
 
+Full manual test checklist, a guide to reading the dashboard, and the baseline-vs-AIMFA table: [LIVE_TEST_GUIDE.md](LIVE_TEST_GUIDE.md).
+
 ## Pre-flight (15 minutes before)
 - [ ] `git pull`, then `pip install -e ".[dev]"`
 - [ ] `.env` has the secrets set, `NTFY_TOPIC` set, and `TAMU_AI_*` set
