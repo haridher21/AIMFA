@@ -26,7 +26,10 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
-    "ruff>=0.6",
+    # Pinned exactly: ruff's import sorting changed between releases, so an open range meant
+    # `ruff check .` passed on one laptop and failed in CI on the same code. Bump it on
+    # purpose (and run `ruff check --fix .` in the same commit), never by accident.
+    "ruff==0.17.5",
     "bandit>=1.7.9",
     "pip-audit>=2.7",
 ]
