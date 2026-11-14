@@ -29,4 +29,8 @@ If the control plane is down, pages show a friendly warning instead of a traceba
 
 **Run:** `streamlit run aimfa/dashboard/app.py` from the repo root. Normally `scripts/run_demo.py` starts it.
 
+**Design prototype:** [`design/decision-console.html`](../../design/README.md) is a static
+mockup of a decision-trace view and a richer approval card — what these pages could become.
+It is a spec, not code: nothing imports it.
+
 **Status:** T7.1 done.
