@@ -98,6 +98,7 @@ tools:
     args: [confirm]
 categories: {}
 sensitive: []
+egress: []
 """
 
 
@@ -455,6 +456,22 @@ def test_category_table(policy, tool, args, category):
 )
 def test_sensitive_table(policy, tool, args, sensitive):
     assert policy.resolve(tool, args).sensitive is sensitive
+
+
+@pytest.mark.parametrize(
+    ("tool", "args", "egress"),
+    [
+        ("send_email", _email("x@evil.example"), True),  # leaves the company
+        ("send_email", _email("bob@acme.test"), False),  # a colleague is not a leak
+        ("wire_transfer", _wire(), True),  # money leaving counts, T6.6
+        ("query_db", {"table": "payroll"}, False),  # reading is not sending
+        ("read_file", _read("/engineering/secrets.env"), False),
+    ],
+)
+def test_egress_table(policy, tool, args, egress):
+    """`egress` must come from policy, not from the category: a wire and a db read are both
+    `finance`, so a category check cannot separate them."""
+    assert policy.resolve(tool, args).egress is egress
 
 
 def test_case_variant_secret_is_sensitive_but_uncategorized_and_unscoped(policy):

@@ -80,7 +80,7 @@ _RESERVED_DEVICE_NAMES = frozenset(
     | {f"LPT{i}" for i in range(1, 10)}
 )
 
-_ACTIONS_KEYS = frozenset({"internal_email_domains", "tools", "categories", "sensitive"})
+_ACTIONS_KEYS = frozenset({"internal_email_domains", "tools", "categories", "sensitive", "egress"})
 _TOOL_KEYS = frozenset({"service", "verb", "target_arg", "target", "tier", "tiers", "args"})
 _ROLES_KEYS = frozenset({"roles"})
 _ROLE_KEYS = frozenset({"description", "allowed_scopes", "profile", "rate_limit_per_minute"})
@@ -156,6 +156,7 @@ class ResolvedAction:
     tier: Tier
     category: str | None
     sensitive: bool
+    egress: bool
     tool: str
     args: dict[str, Any]
 
@@ -529,6 +530,7 @@ class Policy:
         internal_email_domains: frozenset[str],
         categories: dict[str, list[str]],
         sensitive: list[str],
+        egress: list[str],
     ) -> None:
         self._tools = dict(tools)
         self._roles = dict(roles)
@@ -536,6 +538,7 @@ class Policy:
         self._categories = {k: list(v) for k, v in categories.items()}
         # Lowercased once here; see _is_sensitive for why this match ignores case.
         self._sensitive = [p.lower() for p in sensitive]
+        self._egress = [p.lower() for p in egress]
         # Role scopes were validated at load, so parse_scope cannot return None here.
         self._role_scopes: dict[str, list[Scope]] = {
             name: [s for s in map(parse_scope, spec.allowed_scopes) if s is not None]
@@ -579,6 +582,12 @@ class Policy:
                 _is_valid_resource_pattern(pattern, services),
                 f"sensitive: bad pattern {pattern!r}",
             )
+        egress = _str_list(actions["egress"], "egress")
+        for pattern in egress:
+            _require(
+                _is_valid_resource_pattern(pattern, services),
+                f"egress: bad pattern {pattern!r}",
+            )
 
         _require(set(roles_doc) == _ROLES_KEYS, "roles.yaml: top level must be 'roles'")
         raw_roles = roles_doc["roles"]
@@ -591,6 +600,7 @@ class Policy:
             internal_email_domains=frozenset(d.lower() for d in domains),
             categories=categories,
             sensitive=sensitive,
+            egress=egress,
         )
 
     # ---- tool calls --------------------------------------------------------------------
@@ -642,6 +652,7 @@ class Policy:
             tier=tier,
             category=self._category_of(spec.service, target),
             sensitive=self._is_sensitive(spec.service, target),
+            egress=self._is_egress(spec.service, target),
             tool=spec.name,
             args=normalized_args,
         )
@@ -664,6 +675,17 @@ class Policy:
         """
         subject = f"{service}:{target}".lower()
         return any(glob_match(p, subject) for p in self._sensitive)
+
+    def _is_egress(self, service: str, target: str) -> bool:
+        """Does this action send data OUT of the company? (external email, a wire)
+
+        The monitor pairs an egress with an earlier sensitive read to spot exfiltration.
+        It cannot be inferred from the category: a wire and an ordinary ``db:read`` are
+        both ``finance``, so policy has to say which actions leave the building.
+        Case-insensitive for the same reason as ``_is_sensitive``.
+        """
+        subject = f"{service}:{target}".lower()
+        return any(glob_match(p, subject) for p in self._egress)
 
     # ---- scopes and roles --------------------------------------------------------------
 

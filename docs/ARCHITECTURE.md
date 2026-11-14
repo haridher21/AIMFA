@@ -106,5 +106,5 @@ sequenceDiagram
 
 ## Policy model
 - **`policy/roles.yaml`:** for each role, its `allowed_scopes` (what the STS may grant), its `profile` (which resource categories are normal for it, used by the monitor), and a rate limit.
-- **`policy/actions.yaml`:** for each tool, its scope family, which argument becomes the scope target, and its tier. Also defines the resource categories and which resources count as sensitive.
+- **`policy/actions.yaml`:** for each tool, its scope family, which argument becomes the scope target, and its tier. Also defines the resource categories, which resources count as **sensitive**, and which actions count as **egress** (sending data out of the company). The monitor pairs a sensitive read with a later egress to spot exfiltration; neither can be derived from the category, since a wire and a `db:read` are both `finance`.
 - **Scope string:** `service:verb:target`. Wildcards are `*`, matched against the **normalized** path.

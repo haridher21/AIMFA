@@ -4,7 +4,8 @@ ASSUMPTIONS:
 * `aimfa.gateway.pipeline.ControlPlaneMonitor(cp_client)` has `report(event) -> RiskScore` (it calls
   POST /internal/events through the control-plane client). It is the default when
   `create_app(..., monitor=None)`, so the plain `stack` fixture uses the real monitor.
-* Step 7 sends details={"category": <str|None>, "sensitive": <bool>} from the resolved action.
+* Step 7 sends details={"category": <str|None>, "sensitive": <bool>, "egress": <bool>}
+  from the resolved action (egress added in T6.6).
 * Verified-agent denials are reported best effort: SCOPE_DENIED -> scope_denied (+30),
   ACTION_FORBIDDEN -> action_forbidden (+30), DPOP_* -> dpop_failure (+15),
   TOKEN_REVOKED -> token_failure (+15). A failing monitor never changes the denial returned.
@@ -210,3 +211,38 @@ def test_sensitive_read_then_external_email_in_same_task_adds_exfil_points(
     mail = st.call(key, access, "send_email", EXTERNAL_MAIL)
     assert mail.status_code == 202, mail.text  # high tier: still parked for a human
     assert score(st.h, "eng-bot") == 60  # exfil sequence
+
+
+# T6.6: a wire is egress too. actions.yaml always described the rule as "external email,
+# wire", but the monitor matched only the email_external category, so a wire never armed it.
+# These two tests are the pair that matters: the attack fires, the happy path stays quiet.
+
+WIRE = {"to_account": "ACME-0001", "amount": 9000.0, "memo": "invoice 42"}
+FINANCE_SCOPES = ["db:read:*", "bank:wire:*"]
+
+
+def test_sensitive_db_read_then_wire_adds_exfil_points(stack):
+    """Read salaries, then move money out: the sequence the rule exists to catch."""
+    key, access, _ = stack.onboard_task("fin-bot", "finance_ops", FINANCE_SCOPES)
+    read = stack.call(key, access, "query_db", {"table": "payroll"})
+    assert read.status_code == 200, read.text
+    assert score(stack.h, "fin-bot") == 0  # a sensitive read alone is not suspicious
+
+    wire = stack.call(key, access, "wire_transfer", WIRE)
+    assert wire.status_code == 202, wire.text  # high tier: parked for a human either way
+    assert score(stack.h, "fin-bot") == 60
+
+
+def test_reading_vendors_then_wiring_to_them_stays_quiet(stack):
+    """The normal finance_ops job: look up a vendor's account, then pay it.
+
+    This is why `db:vendors` is deliberately not in `sensitive` — marking it would score
+    every legitimate payment as exfiltration.
+    """
+    key, access, _ = stack.onboard_task("fin-bot", "finance_ops", FINANCE_SCOPES)
+    read = stack.call(key, access, "query_db", {"table": "vendors"})
+    assert read.status_code == 200, read.text
+
+    wire = stack.call(key, access, "wire_transfer", WIRE)
+    assert wire.status_code == 202, wire.text
+    assert score(stack.h, "fin-bot") == 0

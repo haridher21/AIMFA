@@ -44,7 +44,6 @@ RATE_WINDOW = timedelta(seconds=60)
 # one task: an agent ends and starts its own tasks, so a task-scoped rule is evaded by
 # reading in one task and sending in the next (A10). Two access-token lifetimes of slack.
 EXFIL_WINDOW = timedelta(minutes=30)
-EXTERNAL_CATEGORY = "email_external"
 
 _TYPE_POINTS: dict[EventType, tuple[str, float]] = {
     EventType.OUT_OF_PROFILE: ("out_of_profile", OUT_OF_PROFILE_POINTS),
@@ -65,10 +64,12 @@ def _is_sensitive(event: RiskEvent) -> bool:
 
 
 def _is_egress(event: RiskEvent) -> bool:
-    return (
-        event.event_type is EventType.EXTERNAL_EGRESS
-        or event.details.get("category") == EXTERNAL_CATEGORY
-    )
+    """Did this action send data out of the company?
+
+    Decided by policy (``egress`` in actions.yaml) and reported by the gateway, not guessed
+    from the category here: a wire and an ordinary ``db:read`` are both ``finance``.
+    """
+    return event.event_type is EventType.EXTERNAL_EGRESS or event.details.get("egress") is True
 
 
 def score_event(
