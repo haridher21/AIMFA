@@ -53,7 +53,7 @@ Each attack runs twice: once in **baseline** mode, where the agent holds a stati
 | A1 | Tampered agent prompt/code | succeeds | attestation |
 | A2 | Stolen token used elsewhere | succeeds | DPoP key binding |
 | A3 | Replayed request | succeeds | DPoP `jti` replay cache |
-| A4 | Prompt injection → steal secrets + email out | succeeds | scope + monitor + human step-up |
+| A4 | Prompt injection → steal secrets + email out | succeeds | scope (least privilege refuses it before behavior matters) |
 | A5 | Unauthorized wire transfer | succeeds | human step-up |
 | A6 | Expired / finished-task token | succeeds | TTL + revocation |
 | A7 | Scope escalation | succeeds | token service policy |

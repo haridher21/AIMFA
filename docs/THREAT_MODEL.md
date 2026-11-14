@@ -46,7 +46,7 @@
 | A1 | Tampered agent prompt/code | supply chain | runs with full key | attestation | `ATTEST_MEASUREMENT_MISMATCH` |
 | A2 | Stolen access token reused (ASI03) | passive | works | DPoP key binding | `DPOP_KEY_MISMATCH` / `DPOP_MISSING` |
 | A3 | Replayed captured request | passive | works | DPoP `jti` cache | `DPOP_REPLAY` |
-| A4 | Prompt injection → read secrets + email out (LLM01, ASI02) | content | exfiltrates | scope, monitor (out-of-profile, exfil), step-up, quarantine | `SCOPE_DENIED`, then `PENDING_APPROVAL` / `AGENT_QUARANTINED` |
+| A4 | Prompt injection → read secrets + email out (LLM01, ASI02) | content | exfiltrates | **scope** (the injected steps are out of role, so least privilege refuses them before behavior is weighed; the monitor contributes nothing here — A10 is the case where it is the only layer left) | `SCOPE_DENIED` |
 | A5 | Unauthorized wire transfer (LLM06) | hijacked agent | works | high tier → human step-up, deny | `APPROVAL_DENIED` |
 | A6 | Expired / finished-task token | passive | key never expires | TTL + revocation | `TOKEN_EXPIRED` / `TOKEN_REVOKED` |
 | A7 | Scope escalation at token request | hijacked agent | n/a (key is all-powerful) | STS role policy | `STS_SCOPE_ESCALATION` |
