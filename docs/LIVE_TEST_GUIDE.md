@@ -128,7 +128,7 @@ Use `--mode baseline` or `--mode aimfa` for one side only.
 | A1 tampered agent | edits the agent's prompt | 🔴 ATTACK SUCCEEDED | 🟢 blocked | attestation | `launch ... refused: ATTEST_MEASUREMENT_MISMATCH` |
 | A2 stolen token | uses a leaked credential from another process | 🔴 | 🟢 | dpop | `thief's own key: HTTP 401 DPOP_KEY_MISMATCH` |
 | A3 replay | resends a captured request | 🔴 (2 emails) | 🟢 (1 email) | dpop_replay | `replay HTTP 401 DPOP_REPLAY` |
-| A4 prompt injection | poisoned note → read secrets, email out | 🔴 (1 mail to attacker) | 🟢 (0 mails) | scope_monitor | `read_file:deny:SCOPE_DENIED, send_email:deny:SCOPE_DENIED` |
+| A4 prompt injection | poisoned note → read secrets, email out | 🔴 (1 mail to attacker) | 🟢 (0 mails) | scope | `read_file:deny:SCOPE_DENIED, send_email:deny:SCOPE_DENIED` |
 | A5 unauthorized wire | hijacked agent wires money | 🔴 balance drops | 🟢 balance unchanged | step_up | `wire deny APPROVAL_DENIED` |
 | A6 expired token | reuses the credential after the task / TTL | 🔴 | 🟢 | ttl_revocation | `TOKEN_REVOKED` / `TOKEN_EXPIRED` |
 | A7 scope escalation | asks for more power than its role | 🔴 | 🟢 | sts_policy | `token request with 3 scopes: HTTP 403` |

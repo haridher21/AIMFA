@@ -9,7 +9,7 @@ throwaway in-process stack (temp dirs, random fake secrets, no network).
 | `a1_tampered_agent.py` | edited agent prompt | attestation | `ATTEST_MEASUREMENT_MISMATCH` |
 | `a2_stolen_token.py` | leaked token, thief's own key | dpop | `DPOP_KEY_MISMATCH` / `DPOP_MISSING` |
 | `a3_replay.py` | exact request replayed | dpop_replay | `DPOP_REPLAY` |
-| `a4_prompt_injection.py` | poisoned note: read secrets, email out | scope_monitor | `SCOPE_DENIED` |
+| `a4_prompt_injection.py` | poisoned note: read secrets, email out | scope | `SCOPE_DENIED` |
 | `a5_unauthorized_wire.py` | hijacked wire, human denies | step_up | `APPROVAL_DENIED` |
 | `a6_expired_token.py` | token after task end / TTL | ttl_revocation | `TOKEN_REVOKED` / `TOKEN_EXPIRED` |
 | `a7_scope_escalation.py` | ask STS for too many scopes | sts_policy | `STS_SCOPE_ESCALATION` |
