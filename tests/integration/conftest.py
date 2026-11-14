@@ -233,7 +233,6 @@ class Stack:
     def __init__(self, h: Harness, settings: Settings, clock: FakeClock) -> None:
         from aimfa.gateway.app import create_app as gw_app
         from aimfa.gateway.cp_client import HttpControlPlaneClient
-
         from aimfa.resources.app import create_app as res_app
 
         self.h, self.settings, self.clock = h, settings, clock

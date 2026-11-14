@@ -9,6 +9,7 @@ advanced in these tests). Poll timeout is counted from the sleeps requested (sum
 from __future__ import annotations
 
 import pytest
+
 from aimfa.agents.client import (
     AgentClient,
     AimfaError,
@@ -16,7 +17,6 @@ from aimfa.agents.client import (
     AuthError,
     PolicyDenied,
 )
-
 from aimfa.common.models import ReasonCode, TokenResponse
 from tests.integration.conftest import valid_code
 

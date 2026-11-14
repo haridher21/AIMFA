@@ -29,11 +29,11 @@ from pathlib import Path
 
 import httpx
 import pytest
-from aimfa.control_plane.notify import NtfyNotifier, build_notification
 from fastapi.testclient import TestClient
 
 from aimfa.common.models import ApprovalReason, ApprovalRecord, ApprovalStatus
 from aimfa.control_plane.app import create_app
+from aimfa.control_plane.notify import NtfyNotifier, build_notification
 from tests.integration.conftest import ADMIN_KEY, Harness, invalid_code, reason_of, valid_code
 from tests.integration.test_approval_routes import ARGS, Env, action_hash
 

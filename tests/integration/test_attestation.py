@@ -60,8 +60,9 @@ def test_happy_path_issues_valid_identity_token(h):
 
 
 def test_signing_key_is_generated_into_keys_dir_and_stable(h, settings, clock):
-    from aimfa.control_plane.app import create_app
     from fastapi.testclient import TestClient
+
+    from aimfa.control_plane.app import create_app
 
     first = h.cp.get("/.well-known/jwks.json").json()
     assert any(settings.keys_dir.iterdir())

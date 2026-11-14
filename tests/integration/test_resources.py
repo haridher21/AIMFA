@@ -13,9 +13,9 @@ from __future__ import annotations
 import json
 
 import pytest
-from aimfa.resources.app import create_app
 from fastapi.testclient import TestClient
 
+from aimfa.resources.app import create_app
 from tests.integration.conftest import GATEWAY_SECRET
 
 HDR = {"X-Gateway-Secret": GATEWAY_SECRET}
