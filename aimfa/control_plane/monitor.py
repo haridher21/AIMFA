@@ -40,6 +40,10 @@ FAILURE_POINTS = 15.0
 APPROVAL_DENIED_POINTS = 25.0
 MAX_EVENT_POINTS = OUT_OF_PROFILE_POINTS + RATE_POINTS + EXFIL_POINTS
 RATE_WINDOW = timedelta(seconds=60)
+# How far back an egress looks for a sensitive read by the SAME AGENT. It is not scoped to
+# one task: an agent ends and starts its own tasks, so a task-scoped rule is evaded by
+# reading in one task and sending in the next (A10). Two access-token lifetimes of slack.
+EXFIL_WINDOW = timedelta(minutes=30)
 EXTERNAL_CATEGORY = "email_external"
 
 _TYPE_POINTS: dict[EventType, tuple[str, float]] = {
@@ -100,15 +104,15 @@ def score_event(
     if recent + 1 > rate_limit_per_minute:
         found.append(("rate_above_limit", RATE_POINTS))
 
-    # Same task only, and the sensitive read must come first.
-    if (
-        event.task_id is not None
-        and _is_egress(event)
-        and any(
-            h.task_id == event.task_id and h.timestamp <= at and _is_sensitive(h) for h in history
-        )
-    ):
-        found.append(("exfil_sequence", EXFIL_POINTS))
+    # Per agent, within EXFIL_WINDOW, and the sensitive read must come first. Newest first,
+    # so we stop as soon as we leave the window.
+    if _is_egress(event):
+        for h in reversed(history):
+            if at - h.timestamp > EXFIL_WINDOW:
+                break
+            if h.timestamp <= at and _is_sensitive(h):
+                found.append(("exfil_sequence", EXFIL_POINTS))
+                break
 
     return [RiskContribution(rule=rule, points=pts, at=at) for rule, pts in found]
 
@@ -163,11 +167,15 @@ class RiskMonitor:
         The biggest single event is worth 130 points (50 + 20 + 60), so after
         ``130 / decay`` minutes it has faded to zero. Bounding what we load keeps the work
         small however long an agent has existed.
+
+        We also never load less than ``EXFIL_WINDOW``: a faded-to-zero sensitive read still
+        has to be visible to an egress that arrives later, or the exfil rule would go quiet
+        again for exactly the slow attacker it is meant to catch.
         """
         decay = self._settings.risk_decay_per_minute
         if decay <= 0:
             return None
-        return now - timedelta(minutes=MAX_EVENT_POINTS / decay)
+        return now - max(timedelta(minutes=MAX_EVENT_POINTS / decay), EXFIL_WINDOW)
 
     def _contributions(self, agent_id: str, now: datetime) -> list[RiskContribution]:
         agent = self._db.get_agent(agent_id)

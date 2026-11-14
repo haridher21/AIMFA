@@ -89,9 +89,33 @@ def test_rate_ignores_events_older_than_60_seconds():
     assert points(ev(), old, limit=3) == 0
 
 
-def test_exfil_fires_on_sensitive_read_then_egress_in_same_task():
+def test_exfil_fires_on_sensitive_read_then_egress_for_the_same_agent():
     history = [ev(ET.SENSITIVE_READ, at=T0 - timedelta(seconds=5))]
     assert points(ev(ET.EXTERNAL_EGRESS), history) == 60
+
+
+# T6.5: the rule used to require both calls to share a task_id. An agent ends and starts its
+# own tasks, so that was evaded by reading in one task and sending in the next (attack A10).
+# These two tests are the regression guard; the old same-task expectation is gone on purpose.
+@pytest.mark.parametrize(
+    ("read_task", "egress_task"),
+    [
+        ("t1", "t2"),  # read in one task, send in the next
+        ("t1", None),  # egress with no task at all
+        (None, None),  # neither call carries a task
+    ],
+)
+def test_exfil_fires_across_task_boundaries(read_task, egress_task):
+    history = [ev(ET.SENSITIVE_READ, task=read_task, at=T0 - timedelta(seconds=5))]
+    assert points(ev(ET.EXTERNAL_EGRESS, task=egress_task), history) == 60
+
+
+def test_exfil_ignores_a_sensitive_read_older_than_the_window():
+    """The lookback is bounded, so the rule cannot be armed by something from hours ago."""
+    stale = [ev(ET.SENSITIVE_READ, at=T0 - timedelta(minutes=31))]
+    assert points(ev(ET.EXTERNAL_EGRESS), stale) == 0
+    fresh = [ev(ET.SENSITIVE_READ, at=T0 - timedelta(minutes=29))]
+    assert points(ev(ET.EXTERNAL_EGRESS), fresh) == 60
 
 
 def test_exfil_via_details_flags():
@@ -105,13 +129,12 @@ def test_exfil_via_details_flags():
 @pytest.mark.parametrize(
     ("history", "egress"),
     [
-        ([ev(ET.SENSITIVE_READ, task="other")], ev(ET.EXTERNAL_EGRESS)),  # different task
-        ([ev(ET.SENSITIVE_READ, task=None)], ev(ET.EXTERNAL_EGRESS, task=None)),  # no task id
         ([ev(ET.TOOL_ALLOWED, category="expenses")], ev(ET.EXTERNAL_EGRESS)),  # read not sensitive
         ([], ev(ET.EXTERNAL_EGRESS)),  # egress alone
+        ([ev(ET.SENSITIVE_READ)], ev(ET.TOOL_ALLOWED, category="expenses")),  # no egress
     ],
 )
-def test_exfil_does_not_fire_without_sensitive_then_egress_in_same_task(history, egress):
+def test_exfil_does_not_fire_without_a_sensitive_read_then_an_egress(history, egress):
     assert points(egress, history) == 0
 
 
