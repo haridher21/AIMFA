@@ -261,8 +261,12 @@ def report_risk(
         tool=action.tool,
         target=action.target,
         timestamp=now,
-        # The monitor decides out-of-profile and exfiltration from these two facts.
-        details={"category": action.category, "sensitive": action.sensitive},
+        # The monitor decides out-of-profile and exfiltration from these facts alone.
+        details={
+            "category": action.category,
+            "sensitive": action.sensitive,
+            "egress": action.egress,
+        },
     )
     try:
         score = monitor.report(event)

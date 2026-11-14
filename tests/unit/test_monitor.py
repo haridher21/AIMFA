@@ -119,11 +119,23 @@ def test_exfil_ignores_a_sensitive_read_older_than_the_window():
 
 
 def test_exfil_via_details_flags():
+    """T6.6: egress comes from the policy's `egress` flag, not from the category name.
+
+    A wire and a plain `db:read` are both the `finance` category, so a category check
+    could not tell "sending money out" from "reading a table".
+    """
     history = [
         ev(ET.TOOL_ALLOWED, at=T0 - timedelta(seconds=5), category="expenses", sensitive=True)
     ]
+    profile = [*PROFILE, "finance"]
+    assert points(ev(ET.TOOL_ALLOWED, category="finance", egress=True), history, profile) == 60
+
+
+def test_egress_category_alone_is_not_egress_any_more():
+    """Guards the T6.6 change: the old rule matched the `email_external` category string."""
+    history = [ev(ET.SENSITIVE_READ, at=T0 - timedelta(seconds=5))]
     profile = [*PROFILE, "email_external"]
-    assert points(ev(ET.TOOL_ALLOWED, category="email_external"), history, profile) == 60
+    assert points(ev(ET.TOOL_ALLOWED, category="email_external"), history, profile) == 0
 
 
 @pytest.mark.parametrize(

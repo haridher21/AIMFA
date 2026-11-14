@@ -356,16 +356,18 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - [x] the split-task variant scores the same as the same-task variant (`test_exfil_fires_across_task_boundaries`)
     - [x] `docs/THREAT_MODEL.md` rewritten: the fresh-task risk is narrowed, and two gaps the fix leaves standing are written down (hand-written sensitivity list, egress = external email only)
   - **Note:** the first external send is still only *parked* for a human at risk 60, not refused. Automatic containment needs the second attempt. That is the intended shape — one out-of-character action should inform the human, not lock the agent out.
-- [ ] **T6.6 Count a wire as egress** (split out of T6.5 on 2026-11-14: needs a policy-schema change, so it deserves its own review)
+- [x] **T6.6 Count a wire as egress** (done 2026-11-14)
   - **Deps:** T6.5
   - **Why:** `policy/actions.yaml` documents the exfil rule as covering "external email, wire", but `monitor._is_egress` matches only the `email_external` category, so **a wire transfer never arms the rule**. Read payroll, then wire money out, and the monitor stays silent.
   - **Why it is not a one-liner:** `wire_transfer` and `query_db` both resolve to the `finance` category, so a category check cannot tell "sending money out" from "reading a table". It needs an explicit `egress:` list in `actions.yaml` (mirroring how `sensitive:` already works), surfaced on `ResolvedAction` and put into the risk event's `details` by the gateway — which also removes the hard-coded `EXTERNAL_CATEGORY` string from `monitor.py`.
   - **Files:** `policy/actions.yaml`, `aimfa/common/policy.py` (`_ACTIONS_KEYS`, `ResolvedAction`), `aimfa/gateway/pipeline.py` (`report_risk` details), `aimfa/control_plane/monitor.py`, tests
+  - **What changed:** `actions.yaml` gained an `egress:` list (`email:external`, `bank:*`) validated exactly like `sensitive:`; `ResolvedAction.egress` carries it; the gateway puts it in the risk event's `details`; and `monitor._is_egress` reads that flag. Internal email is deliberately excluded — mailing a colleague is not a leak.
   - **Accept:**
-    - a sensitive read followed by `wire_transfer` within the window scores the exfil points
-    - reading `db:vendors` and then wiring to that vendor does **not** (the happy path stays quiet)
-    - `EXTERNAL_CATEGORY` is gone from `monitor.py`; egress is policy-driven
-    - `tests/e2e/test_happy_path.py` still passes unchanged
+    - [x] a sensitive read followed by `wire_transfer` within the window scores the exfil points (`test_sensitive_db_read_then_wire_adds_exfil_points`)
+    - [x] reading `db:vendors` and then wiring to that vendor does **not** (`test_reading_vendors_then_wiring_to_them_stays_quiet`) — the happy path stays quiet, which is why `db:vendors` is not `sensitive`
+    - [x] `EXTERNAL_CATEGORY` is gone from `monitor.py`; egress is policy-driven, with `test_egress_category_alone_is_not_egress_any_more` guarding the old behavior
+    - [x] `tests/e2e/test_happy_path.py` passes unchanged
+  - **Note:** `docs/CONTRACTS.md` never specified the risk-event `details` shape, so adding a key there is not a contract change. `policy/actions.yaml` *is* shared config, so this still wants the `contract-change` review AGENTS.md asks for.
 
 ## Phase 7: Dashboard + demo polish (Days 14–17)
 - [x] **T7.1 Streamlit dashboard** (code + tests done 2026-11-12. **Still manual:** the `docs/DEMO.md` walkthrough, done in the Live test session)

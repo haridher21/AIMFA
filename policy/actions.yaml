@@ -78,7 +78,7 @@ categories:
   email_internal: ["email:internal"]
   email_external: ["email:external"]
 
-# Sensitive resources: reading one and then sending data out (currently external email)
+# Sensitive resources: reading one and then sending data out (see `egress` below)
 # arms the monitor's exfiltration-sequence rule. The two calls no longer have to share a
 # task: an agent picks its own task boundaries, so the rule looks back over EXFIL_WINDOW
 # for the same AGENT (see aimfa/control_plane/monitor.py).
@@ -91,3 +91,13 @@ sensitive:
   - "files:/engineering/secrets*"
   - "files:*.env"
   - "db:payroll"
+
+# Egress: actions that send data OUT of the company. The monitor pairs one of these with
+# an earlier sensitive read to spot an exfiltration sequence.
+#
+# This cannot be derived from `categories`: a wire transfer and an ordinary `db:read` are
+# both `finance`, so the policy has to name the actions that leave the building. Internal
+# email is NOT egress — mailing a colleague is not a data leak.
+egress:
+  - "email:external"
+  - "bank:*"
