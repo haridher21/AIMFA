@@ -394,9 +394,27 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - push + TOTP: `run_agent.py wire_bot` → phone buzzes → approve in the dashboard with the code → wire executes
     - T5.3: `run_agent.py llm_expense`, 1 normal run + 3 injection runs; save the transcripts in `docs/results/`
     - T6.3: record the live injection transcript + audit excerpt in `docs/results/a4_live.md`
-- [ ] **T7.2 Demo runbook + rehearsals**
-  - **Files:** `docs/DEMO.md`
-  - **Accept:** 3 timed rehearsals (≤ 8 min each). A backup video is recorded.
+- [x] **T7.2 Demo runbook** (runbook written 2026-11-14. **Still manual:** the 3 rehearsals and the backup video, which need the Live test session first)
+  - **Files:** `docs/DEMO.md` (rewritten), `docs/LIVE_TEST_GUIDE.md` (macOS/Linux commands added alongside the PowerShell ones; A10 added to the Attack Lab and the comparison table)
+  - **What the runbook now says:**
+    - roles for five people, with the **Approver as a different person from the Driver** — factor 4 only reads as true if the audience sees a second human
+    - a demo `.env` profile: `ACCESS_TOKEN_TTL_SECONDS=180`, `APPROVAL_TIMEOUT_SECONDS=120`, `RISK_DECAY_PER_MINUTE=2`. At the 900s default a token never expires inside an 8-minute demo, so the "keys self-destruct" claim stays theoretical. **The TTL must stay above the approval timeout** or the agent's token dies while the human is deciding and the approved retry returns `TOKEN_EXPIRED`.
+    - factor 3 is demonstrated by running `injected_expense` **twice inside a minute**: 60 + 60 crosses the revoke threshold, so the quarantine and the mid-task token revocation happen live
+    - the TAMU AI agent is off the critical path. The roadmap only claims the injection reproduces in ≥1 of 3 live runs, and it is a third-party network call inside a graded 8 minutes; the scripted agent is deterministic, and the live transcript is shown as evidence instead.
+    - rehearsal reset order, because **quarantine is sticky** and a second run otherwise skips the factor-3 beat silently
+    - fallback ladder: live stack → Attack Lab (own in-process temp stacks, needs no live services) → video, recorded during the first successful live run
+  - **Accept:**
+    - [x] runbook covers 8 beats with timings, roles, config and fallbacks
+    - [ ] 3 timed rehearsals (≤ 8 min each) — blocked on the Live test session
+    - [ ] backup video recorded
+- [ ] **T6.7 A `finance_ops` scripted agent, so A10 can run live** (found while writing T7.2)
+  - **Deps:** T6.6
+  - **Why:** A10 is our strongest result — the only attack where the agent breaks no rule, so scope cannot help and the monitor is the only layer left. But it exists **only as an in-process attack script**: there is no `finance_ops` manifest, so `scripts/run_agent.py` cannot drive it against the running services, and the live Risk page never moves for it. In the demo it has to be a slide plus an Attack Lab card.
+  - **Files:** `aimfa/agents/scripted/payroll_exfil.py`, `aimfa/agents/manifests/payroll_exfil.yaml` + its prompt, `scripts/register_agents.py`, `tests/integration/test_scripted_agents.py`
+  - **Accept:**
+    - `python scripts/run_agent.py payroll_exfil` against `run_demo.py` reads `payroll`, attempts two external sends, and the live dashboard shows risk 0 → 60 → 120 with the agent quarantined
+    - the transcript matches what `attacks/a10_silent_exfil.py` reports in-process
+    - it is registered by `register_agents.py` like the other manifests
 
 ## Phase 8: Hardening + submission (Days 17–20)
 - [ ] **T8.1 Security pass:** `/security-review` on the whole repo, plus bandit + pip-audit. Fix the findings, or record them as accepted risks in THREAT_MODEL.
