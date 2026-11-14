@@ -342,19 +342,30 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - A10 runs in both modes from `run_all.py` and appears in `docs/results.md`
     - in AIMFA mode it currently reports `succeeded=True` with `score 0.0`; the gap is pinned by tests so the fix must flip them
     - in baseline mode the payroll reaches the attacker's outbox
-- [ ] **T6.5 Fix the exfil rule** (follow-up to T6.4; do not fold into it — the before/after is the evidence)
+- [x] **T6.5 Fix the exfil rule** (done 2026-11-14; the wire-egress item split out to T6.6)
   - **Deps:** T6.4
-  - **Files:** `policy/actions.yaml`, `aimfa/control_plane/monitor.py`, `tests/unit/test_monitor.py`, `attacks/a10_silent_exfil.py` (expected outcome flips), `docs/THREAT_MODEL.md`
-  - **Plan:**
-    - add the crown-jewel db tables to `sensitive` so category-`finance` reads arm the rule
-    - score the exfil sequence **per agent within a time window** instead of per task, so completing a task no longer launders it
-    - make `_is_egress` treat `bank:wire` as egress: `policy/actions.yaml` already documents "external email, wire", but `monitor.py:63` only matches the `email_external` category, so a wire never counts
-    - move A10 into `EXPECTED` in `tests/e2e/test_attacks.py` with `blocked_by=monitor`
+  - **Files:** `policy/actions.yaml`, `aimfa/control_plane/monitor.py`, `tests/unit/test_monitor.py`, `tests/e2e/test_attacks.py`, `attacks/a10_silent_exfil.py`, `docs/THREAT_MODEL.md`
+  - **What changed:**
+    - `db:payroll` is now `sensitive`. `db:vendors` deliberately is **not**: reading a vendor's account number and then paying it is the normal `finance_ops` workflow, so marking it would fire on the happy path.
+    - the exfil rule is scoped **per agent within `EXFIL_WINDOW` (30 min)** instead of per task, so ending a task no longer launders the sequence. It walks history newest-first and stops at the window edge, matching the existing rate-rule idiom.
+    - `_horizon` now never loads less than `EXFIL_WINDOW`, or a faded-to-zero sensitive read would be invisible to a later egress — which would have reintroduced the gap for exactly the slow attacker the rule targets.
+    - A10 moved into `EXPECTED` with `blocked_by=monitor`, reason `AGENT_QUARANTINED`.
   - **Accept:**
-    - A10 reports `succeeded=False` in AIMFA mode, blocked by the monitor
-    - a repeated exfil attempt crosses `RISK_REVOKE_THRESHOLD` and quarantines the agent
-    - the split-task variant scores the same as the same-task variant
-    - residual risk 6 in `docs/THREAT_MODEL.md` is rewritten to describe what remains
+    - [x] A10 reports `succeeded=False` in AIMFA mode, blocked by the monitor
+    - [x] a repeated exfil attempt crosses `RISK_REVOKE_THRESHOLD` and quarantines the agent (measured: 60 on the first external send, 120 on the second → `HTTP 403 AGENT_QUARANTINED`)
+    - [x] the split-task variant scores the same as the same-task variant (`test_exfil_fires_across_task_boundaries`)
+    - [x] `docs/THREAT_MODEL.md` rewritten: the fresh-task risk is narrowed, and two gaps the fix leaves standing are written down (hand-written sensitivity list, egress = external email only)
+  - **Note:** the first external send is still only *parked* for a human at risk 60, not refused. Automatic containment needs the second attempt. That is the intended shape — one out-of-character action should inform the human, not lock the agent out.
+- [ ] **T6.6 Count a wire as egress** (split out of T6.5 on 2026-11-14: needs a policy-schema change, so it deserves its own review)
+  - **Deps:** T6.5
+  - **Why:** `policy/actions.yaml` documents the exfil rule as covering "external email, wire", but `monitor._is_egress` matches only the `email_external` category, so **a wire transfer never arms the rule**. Read payroll, then wire money out, and the monitor stays silent.
+  - **Why it is not a one-liner:** `wire_transfer` and `query_db` both resolve to the `finance` category, so a category check cannot tell "sending money out" from "reading a table". It needs an explicit `egress:` list in `actions.yaml` (mirroring how `sensitive:` already works), surfaced on `ResolvedAction` and put into the risk event's `details` by the gateway — which also removes the hard-coded `EXTERNAL_CATEGORY` string from `monitor.py`.
+  - **Files:** `policy/actions.yaml`, `aimfa/common/policy.py` (`_ACTIONS_KEYS`, `ResolvedAction`), `aimfa/gateway/pipeline.py` (`report_risk` details), `aimfa/control_plane/monitor.py`, tests
+  - **Accept:**
+    - a sensitive read followed by `wire_transfer` within the window scores the exfil points
+    - reading `db:vendors` and then wiring to that vendor does **not** (the happy path stays quiet)
+    - `EXTERNAL_CATEGORY` is gone from `monitor.py`; egress is policy-driven
+    - `tests/e2e/test_happy_path.py` still passes unchanged
 
 ## Phase 7: Dashboard + demo polish (Days 14–17)
 - [x] **T7.1 Streamlit dashboard** (code + tests done 2026-11-12. **Still manual:** the `docs/DEMO.md` walkthrough, done in the Live test session)

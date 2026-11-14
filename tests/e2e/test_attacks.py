@@ -15,6 +15,7 @@ from attacks.common import (
     LAYER_DPOP,
     LAYER_DPOP_REPLAY,
     LAYER_HASH_CHAIN,
+    LAYER_MONITOR,
     LAYER_SCOPE_MONITOR,
     LAYER_STEP_UP,
     LAYER_STS_POLICY,
@@ -35,6 +36,7 @@ EXPECTED = {
     "A7": (LAYER_STS_POLICY, {ReasonCode.STS_SCOPE_ESCALATION}),
     "A8": (LAYER_HASH_CHAIN, {ReasonCode.AUDIT_CHAIN_BROKEN}),
     "A9": (LAYER_TOTP_BINDING, {ReasonCode.APPROVAL_INVALID_TOTP}),
+    "A10": (LAYER_MONITOR, {ReasonCode.AGENT_QUARANTINED}),
 }
 IDS = list(EXPECTED)
 
@@ -80,27 +82,30 @@ def test_a6_covers_revoked_and_expired(results):
     assert "TOKEN_REVOKED" in evidence and "TOKEN_EXPIRED" in evidence
 
 
-# ------------------------------------------------------------------ A10: a known open gap
+# ------------------------------------------------------------------ A10: closed by T6.5
 #
-# A10 is deliberately NOT in EXPECTED: it currently succeeds in AIMFA mode. It shows that the
-# monitor's exfil rule never fires for a database read, because `sensitive` in
-# policy/actions.yaml lists only file patterns. These tests pin the gap so that the fix (make
-# the crown-jewel tables sensitive and score the sequence per agent, not per task) has to flip
-# them, instead of the defect quietly staying put.
+# A10 reads the payroll table and mails it outside the company without breaking a single
+# rule, so scope and attestation cannot help. Before T6.5 the monitor scored it 0.0 and the
+# approval card told the human "risk 0.0"; now the sequence is recognized per agent, so the
+# first send carries a real number and the second quarantines the agent.
 
 
-def test_a10_monitor_does_not_notice_an_in_scope_exfiltration(results):
-    res = results[("A10", "aimfa")]
-    assert res.succeeded is True, res.evidence
-    assert "score 0.0" in res.evidence
-    assert "behavioral step-up False" in res.evidence
-
-
-def test_a10_human_gate_still_stops_the_data_leaving(results):
-    """Only factor 3 is bypassed: external email is high tier, so nothing reached the outbox."""
+def test_a10_monitor_now_scores_the_exfiltration_sequence(results):
     evidence = results[("A10", "aimfa")].evidence
-    assert "mails to attacker: 0" in evidence
-    assert "HTTP 202" in evidence  # parked for a human, not forwarded
+    assert "risk 60.0" in evidence  # the number the human is shown, no longer 0.0
+    assert "behavioral step-up True" in evidence
+
+
+def test_a10_repeated_egress_crosses_the_revoke_threshold(results):
+    """Second send: 120 points, past RISK_REVOKE_THRESHOLD, so containment is automatic."""
+    evidence = results[("A10", "aimfa")].evidence
+    assert "score 120.0" in evidence
+    assert "quarantined" in evidence
+    assert "HTTP 403" in evidence
+
+
+def test_a10_payroll_never_reaches_the_attacker(results):
+    assert "mails to attacker: 0" in results[("A10", "aimfa")].evidence
 
 
 def test_a10_baseline_leaks_payroll(results):
