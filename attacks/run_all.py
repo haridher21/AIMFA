@@ -27,6 +27,7 @@ from attacks import (  # noqa: E402
     a7_scope_escalation,
     a8_audit_tamper,
     a9_fake_approval,
+    a10_silent_exfil,
 )
 from attacks.common import MODE_AIMFA, MODE_BASELINE, MODES, AttackResult  # noqa: E402
 
@@ -42,6 +43,7 @@ ATTACKS: tuple[Callable[[str], AttackResult], ...] = tuple(
         a7_scope_escalation,
         a8_audit_tamper,
         a9_fake_approval,
+        a10_silent_exfil,
     )
 )
 DEFAULT_OUT = REPO_ROOT / "docs" / "results.md"

@@ -329,6 +329,33 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - unit tests for argument parsing and manifest selection (no network)
     - the live run itself waits for the **Live test session** in Phase 7, where it produces a recorded transcript + audit excerpt in `docs/results/a4_live.md`
 
+- [x] **T6.4 A10 silent exfiltration: the monitor's blind spot** (attack + failing-gap tests done 2026-11-14. **Still to do:** the fix, T6.5)
+  - **Deps:** T6.2
+  - **Files:** `attacks/a10_silent_exfil.py`, `attacks/common.py` (`LAYER_MONITOR`), `attacks/run_all.py`, `tests/e2e/test_attacks.py`
+  - **Why:** every other attack breaks a rule (bad key, bad scope, bad proof). A10 breaks none: `finance_ops` is *allowed* to read db tables and to email external addresses, so reading `payroll` and mailing it out is the exact read-then-send-out sequence the exfil rule exists to catch, with no scope violation to help the monitor.
+  - **Result:** the rule never fires and the agent stays at **risk 0.0**, so there is no quarantine, no behavioral step-up, and the approval card the human must judge reports `risk_score: 0.0` for an exfiltration in progress. Three separate causes, each confirmed:
+    1. **Classification.** `sensitive` in `policy/actions.yaml` lists only file patterns, so `payroll` and `vendors` are not sensitive. The data `finance_ops` can actually reach is invisible to the rule.
+    2. **Task scoping.** `monitor.score_event` requires the sensitive read and the egress to share a `task_id`, and an agent chooses its own task boundaries. Splitting them across two tasks drops the 60 points (measured: 110 same-task vs 50 split).
+    3. **Reachability.** No shipped role holds both a sensitive-read scope and `email:send:external`, so under the shipped policy the rule cannot fire at all. `tests/integration/test_gateway_risk.py:197` only exercises it by widening `roles.yaml` first.
+  - **Scope of the bypass:** factor 3 only. External email is high tier, so an attentive approver still stops the data (`mails to attacker: 0`). A10 is therefore judged on whether the monitor flagged the sequence, not on a real effect — the one attack that deviates from the A1–A9 rubric, which its docstring explains.
+  - **Accept:**
+    - A10 runs in both modes from `run_all.py` and appears in `docs/results.md`
+    - in AIMFA mode it currently reports `succeeded=True` with `score 0.0`; the gap is pinned by tests so the fix must flip them
+    - in baseline mode the payroll reaches the attacker's outbox
+- [ ] **T6.5 Fix the exfil rule** (follow-up to T6.4; do not fold into it — the before/after is the evidence)
+  - **Deps:** T6.4
+  - **Files:** `policy/actions.yaml`, `aimfa/control_plane/monitor.py`, `tests/unit/test_monitor.py`, `attacks/a10_silent_exfil.py` (expected outcome flips), `docs/THREAT_MODEL.md`
+  - **Plan:**
+    - add the crown-jewel db tables to `sensitive` so category-`finance` reads arm the rule
+    - score the exfil sequence **per agent within a time window** instead of per task, so completing a task no longer launders it
+    - make `_is_egress` treat `bank:wire` as egress: `policy/actions.yaml` already documents "external email, wire", but `monitor.py:63` only matches the `email_external` category, so a wire never counts
+    - move A10 into `EXPECTED` in `tests/e2e/test_attacks.py` with `blocked_by=monitor`
+  - **Accept:**
+    - A10 reports `succeeded=False` in AIMFA mode, blocked by the monitor
+    - a repeated exfil attempt crosses `RISK_REVOKE_THRESHOLD` and quarantines the agent
+    - the split-task variant scores the same as the same-task variant
+    - residual risk 6 in `docs/THREAT_MODEL.md` is rewritten to describe what remains
+
 ## Phase 7: Dashboard + demo polish (Days 14–17)
 - [x] **T7.1 Streamlit dashboard** (code + tests done 2026-11-12. **Still manual:** the `docs/DEMO.md` walkthrough, done in the Live test session)
   - **Deps:** T4.3, T6.2

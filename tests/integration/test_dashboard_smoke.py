@@ -42,4 +42,7 @@ def test_attack_lab_renders_and_states_isolation(dead_cp):
     at = AppTest.from_file(str(DASH / "pages/6_Attack_Lab.py"), default_timeout=20).run()
     assert not at.exception
     assert any("OWN throwaway" in i.value for i in at.info)
-    assert len(at.button) == 10  # A1-A9 + Run all
+
+    from attacks import run_all
+
+    assert len(at.button) == len(run_all.ATTACKS) + 1  # one per attack + Run all
