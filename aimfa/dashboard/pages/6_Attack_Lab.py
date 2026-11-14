@@ -1,4 +1,4 @@
-"""Attack Lab: run attacks A1-A9, baseline vs AIMFA, and show result cards."""
+"""Attack Lab: run the attack scripts, baseline vs AIMFA, and show result cards."""
 
 from __future__ import annotations
 

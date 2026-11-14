@@ -80,6 +80,34 @@ def test_a6_covers_revoked_and_expired(results):
     assert "TOKEN_REVOKED" in evidence and "TOKEN_EXPIRED" in evidence
 
 
+# ------------------------------------------------------------------ A10: a known open gap
+#
+# A10 is deliberately NOT in EXPECTED: it currently succeeds in AIMFA mode. It shows that the
+# monitor's exfil rule never fires for a database read, because `sensitive` in
+# policy/actions.yaml lists only file patterns. These tests pin the gap so that the fix (make
+# the crown-jewel tables sensitive and score the sequence per agent, not per task) has to flip
+# them, instead of the defect quietly staying put.
+
+
+def test_a10_monitor_does_not_notice_an_in_scope_exfiltration(results):
+    res = results[("A10", "aimfa")]
+    assert res.succeeded is True, res.evidence
+    assert "score 0.0" in res.evidence
+    assert "behavioral step-up False" in res.evidence
+
+
+def test_a10_human_gate_still_stops_the_data_leaving(results):
+    """Only factor 3 is bypassed: external email is high tier, so nothing reached the outbox."""
+    evidence = results[("A10", "aimfa")].evidence
+    assert "mails to attacker: 0" in evidence
+    assert "HTTP 202" in evidence  # parked for a human, not forwarded
+
+
+def test_a10_baseline_leaks_payroll(results):
+    res = results[("A10", "baseline")]
+    assert res.succeeded is True and "mails to attacker: 2" in res.evidence
+
+
 def test_unknown_mode_is_rejected():
     with pytest.raises(ValueError):
         check_mode("both")

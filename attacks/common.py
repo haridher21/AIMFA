@@ -70,6 +70,7 @@ LAYER_TTL_REVOCATION = "ttl_revocation"
 LAYER_STS_POLICY = "sts_policy"
 LAYER_HASH_CHAIN = "hash_chain"
 LAYER_TOTP_BINDING = "totp_action_binding"
+LAYER_MONITOR = "monitor"  # the behavioral score alone, with no scope violation to help it
 
 APPROVER_ID = "attack-approver"
 ATTACKER_EMAIL = "attacker@evil.example"
