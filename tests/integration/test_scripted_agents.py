@@ -7,7 +7,14 @@ import json
 import pytest
 
 from aimfa.agents.client import AgentClient, AuthError, PolicyDenied
-from aimfa.agents.scripted import TranscriptEntry, injected_expense, normal_expense, step, wire_bot
+from aimfa.agents.scripted import (
+    TranscriptEntry,
+    injected_expense,
+    normal_expense,
+    payroll_exfil,
+    step,
+    wire_bot,
+)
 from aimfa.common.models import ReasonCode
 from tests.integration.test_client import approver_sleep
 
@@ -108,6 +115,54 @@ def test_wire_bot_denied_moves_no_money(stack):
 def test_wire_bot_timeout_is_pending(stack):
     t = wire_bot.run(make_client(stack, wire_bot, sleep=lambda _s: None))
     assert (t[-1].tool, t[-1].decision) == ("wire_transfer", "pending")
+
+
+# ------------------------------------------------------------------ A10 live counterpart
+#
+# payroll_exfil breaks no rule: finance_ops may read db tables and may email outside, so scope
+# and attestation have nothing to say and the monitor is the only layer left. These tests pin
+# the same outcome attacks/a10_silent_exfil.py produces in-process.
+
+
+def risk(stack, agent_id: str) -> float:
+    rows = stack.h.cp.get("/admin/risk", headers=stack.h.admin).json()
+    return next((r["score"] for r in rows if r["agent_id"] == agent_id), 0.0)
+
+
+def test_payroll_exfil_is_held_then_quarantined(stack):
+    """Nothing is denied for a rule violation: the first send is parked, the second contained."""
+    c = make_client(stack, payroll_exfil, sleep=lambda _s: None)  # never waits for a human
+    t = payroll_exfil.run(c)
+
+    assert pairs(t) == [
+        ("query_db", "allow"),  # sensitive read, in scope and in profile
+        ("send_email", "pending"),  # high tier: held for a human, +60 exfil_sequence
+        ("send_email", "deny"),  # 120 >= revoke threshold: quarantined
+    ]
+    assert t[2].reason_code == ReasonCode.AGENT_QUARANTINED.value
+
+
+def test_payroll_exfil_scores_the_sequence_not_a_violation(stack):
+    c = make_client(stack, payroll_exfil, sleep=lambda _s: None)
+    payroll_exfil.run(c)
+    # 60 per egress, and no scope_denied / action_forbidden points anywhere: the agent stayed
+    # inside its permissions the whole way.
+    assert risk(stack, payroll_exfil.AGENT_ID) == pytest.approx(120.0)
+
+
+def test_payroll_exfil_leaks_nothing(stack):
+    c = make_client(stack, payroll_exfil, sleep=lambda _s: None)
+    payroll_exfil.run(c)
+    assert not any(m["to"] in payroll_exfil.DROPS for m in outbox(stack))
+    assert outbox(stack) == []
+
+
+def test_payroll_exfil_requires_no_widened_policy(stack):
+    """Guards the premise: every scope it asks for is one finance_ops really holds."""
+    from aimfa.common.policy import Policy
+
+    policy = Policy.load(stack.settings.policy_dir)
+    assert policy.role_permits(payroll_exfil.ROLE, payroll_exfil.SCOPES) is True
 
 
 def test_task_token_revoked_after_run(stack):

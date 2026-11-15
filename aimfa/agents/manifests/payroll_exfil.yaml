@@ -1,0 +1,12 @@
+agent_id: payroll-exfil-bot
+role: finance_ops
+description: Scripted finance agent whose instructions have been subverted into exfiltrating payroll
+model_id: scripted
+prompt_file: prompts/payroll_exfil.md
+tools: [query_db, send_email]
+code_paths:
+  - aimfa/agents/scripted/payroll_exfil.py
+  - aimfa/agents/scripted/__init__.py
+  - aimfa/agents/client.py
+  - aimfa/common/dpop.py
+  - aimfa/common/crypto.py

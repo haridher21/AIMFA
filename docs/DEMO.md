@@ -46,21 +46,26 @@ the beats below depends on them.
 | **1:00** | Same attack, AIMFA on | Restart in `aimfa` mode, rerun the same agent | `read_file:deny:SCOPE_DENIED`, `send_email:deny:SCOPE_DENIED`. Outbox empty. Identical agent, identical document. |
 | **1:45** | **Factor 1** — what it *is* | Edit one character of `agents/manifests/prompts/normal_expense.md` on screen, then `run_agent.py normal_expense` | `ATTEST_MEASUREMENT_MISMATCH`. It never reaches the token step. Revert the file. |
 | **3:00** | **Factor 2** — what it *has* | Tokens page, then Attack Lab → A2, A3. Leave the token to die. | TTL counting down. `DPOP_KEY_MISMATCH` — a genuine stolen token is useless. `DPOP_REPLAY`. Then the countdown hits zero and the next call is `TOKEN_EXPIRED`. |
-| **4:15** | **Factor 3** — what it *does* | Run `injected_expense` **twice within a minute** | Risk climbs 60, then 120. Crosses 80, the agent flips to **quarantined**, its live token is revoked mid-task, and the next call is `403 AGENT_QUARANTINED`. |
+| **4:15** | **Factor 3** — what it *does* | `run_agent.py payroll_exfil --poll-timeout 2` | The agent reads `payroll` and mails it out **without breaking one rule** — every scope check says yes. Risk goes 0 → 60 (held for a human) → 120. It crosses 80, flips to **quarantined**, its live token is revoked mid-task, and the second send is `403 AGENT_QUARANTINED`. |
 | **5:45** | **Factor 4** — the human | `run_agent.py wire_bot`. Wrong code first, then the right one. | Phone buzzes. The card shows the action, the args and the risk. Wrong code → `APPROVAL_INVALID_TOTP`, card stays. Right code → the wire executes and the balance moves. |
 | **7:00** | Accountability | Audit page → **Verify**. Then edit one row with `sqlite3` in Terminal B and Verify again. | `ok`, then red at `first_bad_seq`. Nothing can be quietly erased. |
 | **7:45** | Close | Results table slide | 10/10 blocked under AIMFA, 9/10 succeed on the baseline. Then name the limitations out loud. |
 
-### Why A10 is a slide, not a live beat
+### Why A10 carries the factor-3 beat
 
-A10 is the only attack where the agent never breaks a rule, so scope cannot help and the monitor
-is the only layer left — it is the most interesting result we have. But it runs only as an
-in-process attack script: there is **no `finance_ops` agent manifest**, so `run_agent.py` cannot
-drive it against the live services. Show it from the **Attack Lab** card and the results table,
-and present the risk arithmetic (0 → 60 → 120 → quarantine) from the slide.
+Every other attack breaks something: a bad key, a stale proof, a scope the agent never had. A10
+breaks nothing. `finance_ops` is legitimately allowed to read database tables and to email
+external addresses, because it pays outside vendors — so attestation passes, the token is valid
+and key-bound, and every scope check says yes. That is what makes it the one beat where the
+behavioral monitor is visibly the *only* thing standing between payroll and the attacker.
 
-To make it a live beat, someone needs to add a scripted `finance_ops` agent that reads `payroll`
-and mails it out — tracked as **T6.7**.
+Say that out loud while it runs, because it is the part an audience will not infer: **nothing was
+violated.** The old script used A4 here, but A4 is refused at the scope gate before behavior is
+ever weighed, so its risk bump is `scope_denied` points rather than exfiltration detection.
+
+Pass `--poll-timeout 2` so the agent does not stall waiting on the approval it triggered. The
+first send sits in the Approvals page at risk 60 while the second one quarantines the agent — if
+you want to show the approval card too, do it after the quarantine lands.
 
 ### What *not* to do live
 

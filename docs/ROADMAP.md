@@ -407,14 +407,20 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
     - [x] runbook covers 8 beats with timings, roles, config and fallbacks
     - [ ] 3 timed rehearsals (≤ 8 min each) — blocked on the Live test session
     - [ ] backup video recorded
-- [ ] **T6.7 A `finance_ops` scripted agent, so A10 can run live** (found while writing T7.2)
+- [x] **T6.7 A `finance_ops` scripted agent, so A10 can run live** (done 2026-11-14; **the live run itself** belongs to the Live test session)
   - **Deps:** T6.6
-  - **Why:** A10 is our strongest result — the only attack where the agent breaks no rule, so scope cannot help and the monitor is the only layer left. But it exists **only as an in-process attack script**: there is no `finance_ops` manifest, so `scripts/run_agent.py` cannot drive it against the running services, and the live Risk page never moves for it. In the demo it has to be a slide plus an Attack Lab card.
-  - **Files:** `aimfa/agents/scripted/payroll_exfil.py`, `aimfa/agents/manifests/payroll_exfil.yaml` + its prompt, `scripts/register_agents.py`, `tests/integration/test_scripted_agents.py`
+  - **Files:** `aimfa/agents/scripted/payroll_exfil.py`, `aimfa/agents/manifests/payroll_exfil.yaml`, `manifests/prompts/payroll_exfil.md`, `scripts/run_agent.py`, `tests/integration/test_scripted_agents.py`, `aimfa/agents/README.md`, `docs/DEMO.md`
+  - **The agent:** `payroll-exfil-bot`, role `finance_ops`, scopes `db:read:*` + `email:send:external` — both genuinely held by that role, so **nothing it does is a violation**. It reads `payroll`, then mails it to two external drops. `register_agents.py` needed no edit: it globs `manifests/*.yaml`.
+  - **Why two sends:** external email is high tier, so the first is only *held* for a human (+60, risk 60). The second adds another 60, crosses `RISK_REVOKE_THRESHOLD`, and quarantines the agent — so the live beat shows containment happening by itself rather than waiting on an approver.
+  - **Why it must not wait:** `step()` turns an approval timeout into a recorded `pending` and carries on, but `AgentClient` polls for `poll_timeout` first (default 120s via `run_agent.py`). Run it as `--poll-timeout 2`, or the second send — and the quarantine — hides behind a two-minute stall. An agent being used to steal data has no reason to wait for permission.
   - **Accept:**
-    - `python scripts/run_agent.py payroll_exfil` against `run_demo.py` reads `payroll`, attempts two external sends, and the live dashboard shows risk 0 → 60 → 120 with the agent quarantined
-    - the transcript matches what `attacks/a10_silent_exfil.py` reports in-process
-    - it is registered by `register_agents.py` like the other manifests
+    - [x] transcript matches `attacks/a10_silent_exfil.py`: `query_db allow` → `send_email pending` → `send_email deny AGENT_QUARANTINED` (`test_payroll_exfil_is_held_then_quarantined`)
+    - [x] risk reaches exactly 120.0 with no `scope_denied`/`action_forbidden` points — it stayed inside its permissions throughout (`test_payroll_exfil_scores_the_sequence_not_a_violation`)
+    - [x] nothing reaches the outbox (`test_payroll_exfil_leaks_nothing`)
+    - [x] the premise is guarded: `role_permits(finance_ops, scopes)` is true against the **shipped** policy, so the attack never depends on a widened `roles.yaml` (`test_payroll_exfil_requires_no_widened_policy`)
+    - [x] the measurement is tamper-sensitive — editing one character of its prompt changes the golden value, so attestation refuses it
+    - [ ] the live run against `run_demo.py` — part of the Live test session
+  - **Demo:** T7.2's factor-3 beat is now `run_agent.py payroll_exfil --poll-timeout 2` instead of running `injected_expense` twice. A4 used to carry that beat, but A4 is refused at the scope gate before behavior is weighed, so its risk bump is `scope_denied` points rather than exfiltration detection.
 
 ## Phase 8: Hardening + submission (Days 17–20)
 - [ ] **T8.1 Security pass:** `/security-review` on the whole repo, plus bandit + pip-audit. Fix the findings, or record them as accepted risks in THREAT_MODEL.

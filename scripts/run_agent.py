@@ -3,6 +3,7 @@
     python scripts/run_agent.py normal_expense
     python scripts/run_agent.py injected_expense     # prompt-injection victim (scripted)
     python scripts/run_agent.py wire_bot             # waits for you to approve on the phone
+    python scripts/run_agent.py payroll_exfil --poll-timeout 2   # attack A10, live
     python scripts/run_agent.py llm_expense          # real TAMU AI model, needs TAMU_AI_API_KEY
 
 The agent goes through the real Launcher (measure + attest), so an unregistered or modified
@@ -33,7 +34,12 @@ from aimfa.agents.launcher import (  # noqa: E402
     load_manifest,
     load_or_create_launcher_key,
 )
-from aimfa.agents.scripted import injected_expense, normal_expense, wire_bot  # noqa: E402
+from aimfa.agents.scripted import (  # noqa: E402
+    injected_expense,
+    normal_expense,
+    payroll_exfil,
+    wire_bot,
+)
 from aimfa.common.config import Settings  # noqa: E402
 from aimfa.common.models import ReasonCode  # noqa: E402
 from scripts.run_demo import check_localhost  # noqa: E402
@@ -62,6 +68,7 @@ AGENTS: dict[str, AgentSpec] = {
     "normal_expense": AgentSpec("normal_expense", normal_expense),
     "injected_expense": AgentSpec("injected_expense", injected_expense),
     "wire_bot": AgentSpec("wire_bot", wire_bot),
+    "payroll_exfil": AgentSpec("payroll_exfil", payroll_exfil),
     "llm_expense": AgentSpec("llm_expense", None),
 }
 

@@ -5,13 +5,18 @@
 | `client.py` | `AgentClient`: holds the instance key, builds a fresh DPoP proof per request, calls the gateway, polls approvals, completes tasks. Raises `AuthError` (401), `PolicyDenied` (403/422), `ApprovalTimeout` | T3.3 (done) |
 | `launcher.py` | The **trusted root**: measures an agent (code + prompt + manifest + model), makes a fresh key, attests, returns an `AgentClient` | T5.1 (done) |
 | `manifests/*.yaml` | Per agent: `agent_id`, role, prompt file, tool list, model id, code paths | T5.1 (done) |
-| `scripted/` | Deterministic agents, no LLM: `normal_expense`, `injected_expense`, `wire_bot`. Each exposes `AGENT_ID`, `ROLE`, `SCOPES`, `TASK`, `run(session) -> list[TranscriptEntry]` | T5.2 (done) |
+| `scripted/` | Deterministic agents, no LLM: `normal_expense`, `injected_expense`, `wire_bot`, `payroll_exfil`. Each exposes `AGENT_ID`, `ROLE`, `SCOPES`, `TASK`, `run(session) -> list[TranscriptEntry]` | T5.2 (done) |
 | `llm.py` | `LLMClient` protocol, `TamuAIClient` (OpenAI-compatible, native tools, always `stream=False`, ADR-0005), `JsonActionClient` fallback, `tool_schemas()` built from `policy/actions.yaml` limited to the manifest's tools | T5.3 (done; live runs manual) |
 | `llm_agent.py` | `run_llm_agent(session, llm, system_prompt=..., tools=..., task=..., scopes=...)`: tool loop, max 15 steps. Tools outside the manifest are never forwarded; a gateway denial goes back to the model as `DENIED: <reason_code>` and the loop continues; `complete_task()` always runs | T5.3 (done) |
 
-**Running one live (T6.3, code done; live run waits for the Live test session):** `python scripts/run_agent.py <normal_expense|injected_expense|wire_bot|llm_expense>` launches through the real `Launcher` against the services started by `scripts/run_demo.py` and prints tool / decision / reason code only (no keys, tokens or file contents). Attack scripts that use these agents live in `attacks/`.
+**Running one live (T6.3, code done; live run waits for the Live test session):** `python scripts/run_agent.py <normal_expense|injected_expense|wire_bot|payroll_exfil|llm_expense>` launches through the real `Launcher` against the services started by `scripts/run_demo.py` and prints tool / decision / reason code only (no keys, tokens or file contents). Attack scripts that use these agents live in `attacks/`.
 
 **Sessions.** Scripted agents only use `start_task`, `call` and `complete_task`, so the same script runs against `AgentClient` or (Phase 6) a baseline client. `scripted.step()` records a denial instead of raising, so the transcript shows every blocked step. `injected_expense` simulates a prompt-injection victim and is for the local mock stack only.
+`payroll_exfil` is the live counterpart of attack **A10**: unlike every other attack agent it
+**breaks no rule** — `finance_ops` may read db tables and may email externally — so scope and
+attestation have nothing to say and the behavioral monitor is the only layer left. Run it with
+a short `--poll-timeout` (e.g. `2`) so it does not stall on the first approval; an agent being
+used to steal data has no reason to wait for permission.
 
 ## Must never
 - **Write an agent instance private key to disk.**
