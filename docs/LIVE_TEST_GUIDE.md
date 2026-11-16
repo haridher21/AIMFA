@@ -55,7 +55,7 @@ Use **two terminals**: terminal A runs the services, terminal B runs the agents.
 | U3 | Enroll the approver | Scan the QR with your authenticator app (Google Authenticator, Authy, ...) | a 6-digit code that changes every 30 s | The QR appears **only once**. After every `--reset`, delete the old entry in the app and scan the new QR. |
 | U4 | Localhost only | Terminal B — Windows: `Get-NetTCPConnection -State Listen -LocalPort 8000,8100,8200,8501 \| Select-Object LocalAddress,LocalPort` · macOS: `lsof -nP -iTCP -sTCP:LISTEN \| grep -E "8000\|8100\|8200\|8501"` · Linux: `ss -ltnp \| grep -E "8000\|8100\|8200\|8501"` | every row shows `127.0.0.1`, never `0.0.0.0` | Security rule 12: nobody else on your Wi-Fi can reach the services. |
 | U5 | Open the dashboard | http://127.0.0.1:8501 | Home shows the agent counts. **Agents** lists `expense-bot`, `injected-expense-bot`, `wire-bot` and `llm-expense-bot` as `registered`. | |
-| U6 | Clean stop | Press Ctrl+C in terminal A, then repeat U4 | `stopping ...`, and U4 prints nothing | No orphan processes, which matters on Windows. |
+| U6 | Clean stop | Press Ctrl+C **in terminal A itself**, then repeat U4 | `stopping ...`, and U4 prints nothing | No orphan processes, which matters on Windows. Verified on macOS 2026-11-15: all four ports released in ~1 s, no orphans. **Ctrl+C only works because the terminal signals the whole process group.** If you background it (`&`), launch it from a script, or use an IDE stop button that signals just the parent process, nothing shuts down and the ports stay held — kill the process group (`kill -INT -<pgid>`) or close the terminal. |
 | U7 | Restart for the trials | `python scripts/run_demo.py` (no `--reset`, so the QR stays valid) | `approver already enrolled` | |
 
 ---
