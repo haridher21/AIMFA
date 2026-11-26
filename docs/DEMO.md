@@ -4,6 +4,34 @@
 [LIVE_TEST_GUIDE.md](LIVE_TEST_GUIDE.md) — do that **first**; this file assumes the stack has
 already run live at least once.
 
+## Autoplay (the easy way)
+
+```bash
+python scripts/demo_autoplay.py                 # all 8 steps, in the order of the script below
+python scripts/demo_autoplay.py --steps 6,7     # rehearse only some steps (names or numbers)
+python scripts/demo_autoplay.py --reset         # wipe var/ first (makes a NEW approver QR)
+```
+
+The script starts and stops the services itself, so **don't run `run_demo.py` at the same time**.
+It opens the dashboard and runs every step below. Before each step it tells you which dashboard
+tab to show and waits for Enter. The presenter only has to:
+
+1. press **Enter** to move on,
+2. switch browser tabs when it says so,
+3. at the Factor 4 step, type the **6-digit code** from the authenticator app once. (The script
+   first sends a deliberately wrong code to show it being refused.)
+
+The first run, or any run after `--reset`, prints a QR code to scan into the authenticator app.
+Later runs reuse the same approver. Service logs go to `var/demo-logs/`, not the terminal.
+Steps that edit things put them back afterwards: the one-character prompt change for Factor 1 and
+the rewritten audit row are restored, and leftover quarantines from an earlier rehearsal are
+cleared at the start. The Factor 2 attacks (A2, A3, A6) and the final results table run in
+isolated in-memory copies, the same as the Attack Lab tab. Everything else hits the live services.
+
+> **Baseline note:** `run_agent.py` always attests and sends a DPoP token, which the baseline
+> gateway doesn't accept. So the manual 0:00 beat below doesn't work as written. Use the autoplay
+> script, which plays the agent with the static `BASELINE_API_KEY`, as a real baseline agent would.
+
 ## Hard prerequisite
 
 Everything in this repo is tested in-process with `TestClient`. Until the **Live test session**
