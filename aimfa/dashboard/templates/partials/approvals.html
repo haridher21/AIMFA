@@ -1,0 +1,31 @@
+{% import "macros.html" as m %}
+{% import "icons.html" as ic %}
+{{ m.notice(notice) }}
+{% if loaded %}
+{% for c in cards %}
+<article class="card approval">
+  <header class="approval-head">
+    <p><strong class="mono">{{ c.agent }}</strong> wants to run <code>{{ c.tool }}</code></p>
+    <div class="badges">
+      <span class="badge badge-orange" data-help="The agent's risk score when it asked.">risk {{ "%g"|format(c.risk) }}</span>
+      <span class="badge badge-gray" data-help="After this, the request expires and the action never runs.">expires in {{ c.expires_in }}</span>
+    </div>
+  </header>
+  <p class="muted small">Exact arguments this approval is bound to:</p>
+  <pre class="args">{{ c.args_json }}</pre>
+  <div class="decide">
+    <label for="code-{{ c.approval_id }}">TOTP code for <span class="mono">{{ c.approver_id }}</span>
+      <span class="help" data-help="Open the approver's authenticator app and type the current 6-digit code. The code is bound to this exact action, so it can't be reused for a different one." tabindex="0">?</span>
+    </label>
+    <input id="code-{{ c.approval_id }}" class="code-input" type="text" inputmode="numeric" maxlength="6"
+           autocomplete="off" placeholder="123456" spellcheck="false">
+    <button class="btn btn-primary" type="button" data-action="/api/approvals/{{ c.approval_id|urlencode }}/decide"
+            data-body='{"approve": true}' data-input="code-{{ c.approval_id }}">{{ ic.icon("check") }}Approve</button>
+    <button class="btn" type="button" data-action="/api/approvals/{{ c.approval_id|urlencode }}/decide"
+            data-body='{"approve": false}' data-input="code-{{ c.approval_id }}">{{ ic.icon("x") }}Deny</button>
+  </div>
+</article>
+{% else %}
+<div class="empty empty-ok">{{ ic.icon("shield-check") }} No pending approvals.</div>
+{% endfor %}
+{% endif %}

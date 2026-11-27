@@ -1,6 +1,6 @@
-"""Pure view helpers: turn API models into plain rows for the Streamlit pages.
+"""Pure view helpers: turn API models into plain rows for the dashboard templates.
 
-Why separate: they take ``now`` as a parameter and import no streamlit, so they are
+Why separate: they take ``now`` as a parameter and import no web framework, so they are
 unit-tested without a browser. They also decide what is SAFE to show: tokens are never
 shown (only a truncated ``jti``) and ``redact`` scrubs configured secrets from any text.
 """
@@ -82,6 +82,32 @@ def risk_chart(scores: Iterable[RiskScore], settings: Settings) -> dict[str, Any
         "scores": {s.agent_id: s.score for s in scores},
         "step_up": settings.risk_step_up_threshold,
         "revoke": settings.risk_revoke_threshold,
+    }
+
+
+def risk_zone(score: float, step_up: float, revoke: float) -> str:
+    """Same ``>=`` boundaries the monitor uses for step-up and quarantine."""
+    return "revoke" if score >= revoke else "step-up" if score >= step_up else "normal"
+
+
+def risk_bars(chart: dict[str, Any]) -> dict[str, Any]:
+    """Bar lengths (0-100 %) for the risk chart, scaled so the revoke line is always visible."""
+    step_up, revoke = chart["step_up"], chart["revoke"]
+    top = max([revoke * 1.15, *chart["scores"].values()]) or 1.0
+    return {
+        "bars": [
+            {
+                "agent": agent,
+                "score": score,
+                "zone": risk_zone(score, step_up, revoke),
+                "pct": round(max(0.0, score) / top * 100, 1),
+            }
+            for agent, score in chart["scores"].items()
+        ],
+        "step_up": step_up,
+        "revoke": revoke,
+        "step_pct": round(step_up / top * 100, 1),
+        "revoke_pct": round(revoke / top * 100, 1),
     }
 
 
@@ -242,6 +268,41 @@ AUDIT_COLUMNS: ColumnHelp = {
     "outcome": ("Outcome", "allow, deny or pending (waiting for a human)."),
     "reason": ("Reason", "The ReasonCode: the machine-readable 'why' behind the outcome."),
 }
+
+
+# Hover help per attack, keyed by the attack's module name.
+ATTACK_HELP = {
+    "a1_tampered_agent": "A modified agent build tries to get an identity. Stopped by attestation.",
+    "a2_stolen_token": "A thief uses a stolen token without the agent's private key. "
+    "Stopped by DPoP.",
+    "a3_replay": "A captured request is sent a second time. Stopped by DPoP replay protection.",
+    "a4_prompt_injection": "A poisoned document tells the agent to read secrets and email them "
+    "out. Stopped by scopes.",
+    "a5_unauthorized_wire": "The agent tries a bank wire with no human approval. "
+    "Stopped by step-up.",
+    "a6_expired_token": "A token is used after its task ended or its time ran out. Stopped by TTL "
+    "and revocation.",
+    "a7_scope_escalation": "The agent asks for more scopes than its role allows. Stopped by the "
+    "token service's policy.",
+    "a8_audit_tamper": "Someone edits an audit record in the database. Caught by the hash chain.",
+    "a9_fake_approval": "Approval with a wrong TOTP code, or reused for a different amount. "
+    "Stopped by TOTP and action binding.",
+    "a10_silent_exfil": "Reads payroll from the database and emails it out, staying inside its "
+    "scopes. Tests whether the risk monitor notices (a known gap; the human approval still "
+    "stands).",
+}
+
+
+def attack_buttons(attacks: Iterable[Any]) -> list[dict[str, Any]]:
+    """Label and hover help per attack function, from its module name (e.g. a3_replay)."""
+    out = []
+    for i, fn in enumerate(attacks):
+        module = getattr(fn, "__module__", "").rsplit(".", 1)[-1]
+        words = module.split("_", 1)[1].replace("_", " ") if "_" in module else ""
+        out.append(
+            {"index": i, "label": f"A{i + 1} {words}".strip(), "help": ATTACK_HELP.get(module, "")}
+        )
+    return out
 
 
 # run_all.py reports A9 as N/A in baseline: there is no human-approval step to attack.

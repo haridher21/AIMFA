@@ -1,0 +1,43 @@
+{% import "icons.html" as ic %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>AIMFA · {{ title }}</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="/">
+      {{ ic.logo(36) }}
+      <span class="brand-text"><strong>AIMFA</strong><small>MFA for AI agents</small></span>
+    </a>
+    <nav aria-label="Pages">
+      {% for href, label, icon_name in nav %}
+      <a href="{{ href }}"{% if href == active %} aria-current="page"{% endif %}>{{ ic.icon(icon_name) }}<span>{{ label }}</span></a>
+      {% endfor %}
+    </nav>
+    <div class="sidebar-foot">
+      <p><span class="live-dot" aria-hidden="true"></span>Live · updates every {{ (refresh_ms / 1000)|round(1) }} s</p>
+      <p class="muted">Localhost only · admin API</p>
+    </div>
+  </aside>
+  <main>
+    {% block header %}
+    <header class="page-head">
+      <span class="page-icon">{{ ic.icon(page_icon) }}</span>
+      <div>
+        <h1>{{ title }}</h1>
+        <p class="blurb">{{ blurb }}</p>
+        {% block note %}{% endblock %}
+      </div>
+    </header>
+    {% endblock %}
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

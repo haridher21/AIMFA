@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block note %}<p class="note">The contract has no per-token revoke, so the button revokes ALL tokens of the agent.</p>{% endblock %}
+{% block content %}
+<section class="live" data-src="/partials/tokens" data-every="{{ refresh_ms }}">
+  {% include "partials/tokens.html" %}
+</section>
+{% endblock %}

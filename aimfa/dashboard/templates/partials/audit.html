@@ -1,0 +1,28 @@
+{% import "macros.html" as m %}
+{{ m.notice(notice) }}
+{% if loaded %}
+{% if rows %}
+<div class="card table-card">
+  <table>
+    <thead>
+      <tr>{% for key in ["seq", "time", "component", "actor", "event", "outcome", "reason"] %}{{ m.th(columns.audit, key) }}{% endfor %}</tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td class="num">{{ r.seq }}</td>
+        <td class="nowrap">{{ m.when(r.time) }}</td>
+        <td>{{ r.component }}</td>
+        <td class="mono">{{ r.actor }}</td>
+        <td class="mono small">{{ r.event }}</td>
+        <td>{{ m.pill(r.outcome) }}</td>
+        <td class="mono small">{{ r.reason }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty">Audit log is empty.</div>
+{% endif %}
+{% endif %}

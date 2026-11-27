@@ -1,0 +1,9 @@
+{% import "macros.html" as m %}
+{{ m.notice(notice) }}
+{% if res is not none %}
+{% if res.ok %}
+<div class="alert alert-success" role="status">Chain OK ({{ res.records_checked }} records checked)</div>
+{% else %}
+<div class="alert alert-error" role="alert">Chain BROKEN at seq {{ res.first_bad_seq }} ({{ res.reason_code.value }})</div>
+{% endif %}
+{% endif %}

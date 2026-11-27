@@ -1,0 +1,60 @@
+{% import "macros.html" as m %}
+{{ m.notice(notice) }}
+{% if loaded %}
+<p class="note">Step-up at {{ "%g"|format(chart.step_up) }}, revoke + quarantine at {{ "%g"|format(chart.revoke) }}</p>
+{% if chart.bars %}
+<div class="card chart">
+  <div class="legend">
+    <span class="key key-normal">normal</span>
+    <span class="key key-step-up">step-up</span>
+    <span class="key key-revoke">revoke</span>
+  </div>
+  <div class="bars">
+    {% for b in chart.bars %}
+    <div class="bar-row">
+      <span class="bar-label mono">{{ b.agent }}</span>
+      <div class="bar-track">
+        <div class="bar bar-{{ b.zone }}" data-pct="{{ b.pct }}"></div>
+        <span class="threshold threshold-step-up" data-pct="{{ chart.step_pct }}" data-pct-prop="left"></span>
+        <span class="threshold threshold-revoke" data-pct="{{ chart.revoke_pct }}" data-pct-prop="left"></span>
+      </div>
+      <span class="bar-value" data-help="zone: {{ b.zone }}">{{ "%.1f"|format(b.score) }}</span>
+    </div>
+    {% endfor %}
+    <div class="bar-row axis">
+      <span class="bar-label"></span>
+      <div class="bar-track">
+        <span class="axis-label axis-step-up" data-pct="{{ chart.step_pct }}" data-pct-prop="left">step-up {{ "%g"|format(chart.step_up) }}</span>
+        <span class="axis-label axis-revoke" data-pct="{{ chart.revoke_pct }}" data-pct-prop="left">revoke {{ "%g"|format(chart.revoke) }}</span>
+      </div>
+      <span class="bar-value"></span>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="empty">No risk scores yet.</div>
+{% endif %}
+
+<h2>Recent rule hits</h2>
+{% if hits %}
+<div class="card table-card">
+  <table>
+    <thead>
+      <tr>{% for key in ["agent", "rule", "points", "at"] %}{{ m.th(columns.rule_hits, key) }}{% endfor %}</tr>
+    </thead>
+    <tbody>
+      {% for h in hits %}
+      <tr>
+        <td class="mono">{{ h.agent }}</td>
+        <td class="mono">{{ h.rule }}</td>
+        <td class="num">+{{ "%g"|format(h.points) }}</td>
+        <td>{{ m.when(h.at) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty">No rule hits yet.</div>
+{% endif %}
+{% endif %}

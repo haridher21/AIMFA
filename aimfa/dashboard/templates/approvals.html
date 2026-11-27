@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block note %}<p class="note">The 6-digit code comes from the approver's authenticator app. It is typed here by the human and nowhere else: this console never holds a TOTP seed.</p>{% endblock %}
+{% block content %}
+<section class="live" data-src="/partials/approvals" data-every="{{ refresh_ms }}">
+  {% include "partials/approvals.html" %}
+</section>
+{% endblock %}

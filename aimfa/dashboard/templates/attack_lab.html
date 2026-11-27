@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% import "macros.html" as m %}
+{% import "icons.html" as ic %}
+{% block note %}<div class="alert alert-info">Attacks run in their OWN throwaway in-process stack (temp dir, random secrets, fake data). They never touch the live services shown on the other pages.</div>{% endblock %}
+{% block content %}
+{{ m.notice(attack_notice) }}
+<div class="card attack-panel" data-group="attacks">
+  <fieldset class="mode">
+    <legend><span class="help" data-help="baseline = one shared API key, no other checks. aimfa = all four checks on." tabindex="0">Mode</span></legend>
+    <label><input type="radio" name="mode" value="aimfa" checked> aimfa</label>
+    <label><input type="radio" name="mode" value="baseline"> baseline</label>
+  </fieldset>
+  <div class="grid grid-5">
+    {% for b in buttons %}
+    <button class="btn" type="button" data-action="/api/attacks/run" data-body='{"index": {{ b.index }}}'
+            data-mode-from="mode"{% if b.help %} data-help="{{ b.help }}"{% endif %}>{{ b.label }}</button>
+    {% endfor %}
+  </div>
+  <div class="button-row">
+    <button class="btn btn-primary" type="button" data-action="/api/attacks/run" data-body='{"index": null}'
+            data-mode-from="mode">{{ ic.icon("play") }}Run all</button>
+    <button class="btn btn-ghost" type="button" data-action="/api/attacks/clear">{{ ic.icon("trash") }}Clear results</button>
+  </div>
+</div>
+<section class="live" id="attack-results" data-src="/partials/attack_results">
+  {% include "partials/attack_results.html" %}
+</section>
+{% endblock %}

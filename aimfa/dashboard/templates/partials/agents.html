@@ -1,0 +1,37 @@
+{% import "macros.html" as m %}
+{% import "icons.html" as ic %}
+{{ m.notice(notice) }}
+{% if loaded %}
+{% if rows %}
+<div class="card table-card">
+  <table>
+    <thead>
+      <tr>
+        {% for key in ["agent", "role", "status", "approver"] %}{{ m.th(columns.agents, key) }}{% endfor %}
+        <th scope="col" class="actions-col">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td class="mono">{{ r.agent }}</td>
+        <td>{{ r.role }}</td>
+        <td>{{ m.pill(r.status) }}</td>
+        <td>{{ r.approver }}</td>
+        <td class="actions">
+          {% if r.quarantined %}
+          <button class="btn" type="button" data-action="/api/agents/{{ r.agent|urlencode }}/clear-quarantine"
+                  data-help="Let the agent work again after an admin has looked into it.">{{ ic.icon("unlock") }}Clear quarantine</button>
+          {% endif %}
+          <button class="btn btn-danger" type="button" data-action="/api/agents/{{ r.agent|urlencode }}/revoke"
+                  data-help="Cancel every token this agent holds, immediately.">{{ ic.icon("ban") }}Revoke (kill switch)</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty">No agents registered.</div>
+{% endif %}
+{% endif %}

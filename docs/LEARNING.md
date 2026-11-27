@@ -105,7 +105,7 @@ Plus a **tamper-proof logbook**. Every entry contains a fingerprint of the entry
 | The attacks | `attacks/` (Phase 6). Each `aNN_*.py` has a `run(mode)` and a docstring saying what it does and why it is stopped. `common.py` builds a throwaway stack per attack and judges success by real effects (outbox, bank balance, HTTP status, audit verify) |
 | The results table (baseline vs AIMFA) | `attacks/run_all.py` writes `docs/results.md`; `tests/e2e/test_attacks.py` checks it (Phase 6) |
 | Running one agent against the live demo | `scripts/run_agent.py <manifest>` (Phase 6) |
-| The human's control room (dashboard) | `aimfa/dashboard/` (Phase 7). `admin_client.py` is the ONLY way it gets data (admin API, localhost only, never via a proxy); `views.py` turns API answers into safe table rows (no tokens, secrets redacted); `pages/` are the six thin Streamlit pages; `ui.py` is shared glue (friendly errors, messages that survive auto-refresh) |
+| The human's control room (dashboard) | `aimfa/dashboard/` (Phase 7). `admin_client.py` is the ONLY way it gets data (admin API, localhost only, never via a proxy); `views.py` turns API answers into safe table rows (no tokens, secrets redacted); `security.py` holds the browser-safety checks (CSRF token, Host allow-list, security headers); `app.py` has the routes, `templates/` the HTML, `static/` our own CSS and JS (ADR 0006) |
 
 ### The launcher, in plain English
 Phase 5 adds **the front desk that issues ID cards**. An agent can't vouch for itself, because a tampered agent would simply lie. So a trusted **launcher** does it instead. It fingerprints the agent's code files, its system prompt, its tool list and its model name, then makes a brand-new key that lives only in memory. It signs all of that together with a one-time number (a nonce) from the control plane. The control plane compares the fingerprint to the "golden" one that was registered earlier. Change one character of the prompt and the fingerprints no longer match, so no ID card is issued (`ATTEST_MEASUREMENT_MISMATCH`). The agent's private key is never saved to disk, so there is no key file to steal. The LLM agent reads its system prompt **only** from the measured manifest. Otherwise someone could swap the prompt after the fingerprint was taken.
@@ -120,6 +120,13 @@ Every tool call walks past ten guards in a fixed order, and **the first guard th
 
 ### The dashboard, in plain English
 The dashboard is the human's control room. It shows who the agents are, which tokens are alive (with a countdown), how risky each agent looks, and every audit record as it happens, plus a **Verify chain** button that re-checks the tamper-evident log. It talks to the control plane **only through the admin API** (it has no database access), so every click is authenticated and audited. Approving a risky action needs the six-digit TOTP code, and the human types it **only here**: the agent never sees it, the phone push never carries it, and the dashboard refuses to send an empty or malformed code. The **Attack Lab** runs attacks A1-A9 in a separate throwaway copy of the system, so a demo attack can never hurt the live one.
+
+### Web-page safety for the dashboard, in plain English
+A web page on `127.0.0.1` isn't automatically safe. Your browser will send requests to localhost for **any** website you have open. So the dashboard protects itself like any real web app:
+- **CSRF (cross-site request forgery):** a malicious site could try to make your browser press "Revoke" or "Clear quarantine" for you. Every button press therefore carries a secret token that only our own pages know, and the server checks where the request came from. A forged click is refused with 403.
+- **XSS (cross-site scripting):** agent-supplied text, like approval arguments or attack evidence, could contain `<script>`. The templates escape everything, so it is shown as text and never run. The Content-Security-Policy header also tells the browser to run only our own script file.
+- **Clickjacking:** another site could load the dashboard invisibly and trick you into clicking it. The `X-Frame-Options: DENY` and `frame-ancestors 'none'` headers forbid that.
+- **DNS rebinding:** a trick that makes your browser think `evil.example` is `127.0.0.1`. The server only answers requests addressed to `127.0.0.1` or `localhost`.
 
 ## 6. Likely Q&A questions (practice these)
 - **Why not just use short-lived API keys?** A short-lived key can still be used by whoever steals it during its lifetime. DPoP binds the token to a private key that never leaves the agent.

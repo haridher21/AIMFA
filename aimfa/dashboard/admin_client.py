@@ -2,7 +2,7 @@
 
 Why a separate class: the dashboard must never touch the database. Going through the admin
 API means every action is authenticated (``X-Admin-Key``), validated and audited by the
-control plane. No streamlit import here, so it is unit-testable.
+control plane. No web framework import here, so it is unit-testable.
 """
 
 from __future__ import annotations

@@ -1,0 +1,17 @@
+{# Shared bits. Jinja escapes every {{ value }}, so agent-supplied text is shown, never run. #}
+
+{% macro notice(n) -%}
+{% if n %}<div class="alert alert-{{ n.kind }}" role="alert">{{ n.message }}</div>{% endif %}
+{%- endmacro %}
+
+{% macro th(help, key) -%}
+{% set label, text = help[key] %}<th scope="col"><span class="help" data-help="{{ text }}" tabindex="0">{{ label }}</span></th>
+{%- endmacro %}
+
+{% macro pill(value) -%}
+<span class="pill pill-{{ value }}">{{ value }}</span>
+{%- endmacro %}
+
+{% macro when(dt) -%}
+<time datetime="{{ dt.isoformat() }}">{{ dt.strftime("%Y-%m-%d %H:%M:%S") }}</time>
+{%- endmacro %}

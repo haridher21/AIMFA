@@ -1,4 +1,4 @@
-"""T7.1 unit tests: pure dashboard helpers (no streamlit, no server)."""
+"""T7.1 unit tests: pure dashboard helpers (no server)."""
 
 from __future__ import annotations
 
@@ -219,7 +219,7 @@ def test_totp_format_accepts_six_digits():
 def test_dashboard_never_touches_the_database():
     """The dashboard may only use the admin API, so no db/sqlite imports anywhere."""
     sources = list(DASHBOARD_DIR.rglob("*.py"))
-    assert len(sources) >= 8
+    assert len(sources) >= 4
     for path in sources:
         text = path.read_text(encoding="utf-8")
         assert "aimfa.common.db" not in text, path
@@ -227,7 +227,13 @@ def test_dashboard_never_touches_the_database():
 
 
 def test_pages_never_render_the_admin_key_setting():
-    pages = [DASHBOARD_DIR / "app.py", *(DASHBOARD_DIR / "pages").glob("*.py")]
-    assert len(pages) == 7
-    for path in pages:  # pages never touch the key; only the client (header) and redact()
+    """Routes, templates and JS never touch the key; only the client (header) and redact()."""
+    files = [
+        DASHBOARD_DIR / "app.py",
+        DASHBOARD_DIR / "security.py",
+        *(DASHBOARD_DIR / "templates").rglob("*.html"),
+        *(DASHBOARD_DIR / "static").glob("*"),
+    ]
+    assert len(files) >= 10
+    for path in files:
         assert "admin_api_key" not in path.read_text(encoding="utf-8"), path

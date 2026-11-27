@@ -1,0 +1,23 @@
+{% import "macros.html" as m %}
+{% import "icons.html" as ic %}
+{{ m.notice(notice) }}
+{% if cards %}
+<div class="grid grid-4">
+  {% for c in cards %}
+  <div class="card stat stat-{{ c.status }}">
+    <span class="stat-icon">{{ ic.icon(c.icon) }}</span>
+    <div class="stat-body">
+      <span class="help stat-label" data-help="{{ c.help }}" tabindex="0">{{ c.status|capitalize }} agents</span>
+      <strong class="stat-value">{{ c.count }}</strong>
+    </div>
+  </div>
+  {% endfor %}
+  <a class="card stat stat-pending{% if pending %} stat-attention{% endif %}" href="/approvals">
+    <span class="stat-icon">{{ ic.icon("bell") }}</span>
+    <div class="stat-body">
+      <span class="stat-label">Pending approvals</span>
+      <strong class="stat-value">{{ pending if pending is not none else "–" }}</strong>
+    </div>
+  </a>
+</div>
+{% endif %}

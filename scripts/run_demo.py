@@ -97,10 +97,9 @@ def service_commands(settings: Settings, mode: str) -> list[Service]:
         services.append((name, argv, f"http://{HOST}:{port}/health"))
     if DASHBOARD_APP.exists():
         port = _port(settings.dashboard_url)
-        argv = [py, "-m", "streamlit", "run", str(DASHBOARD_APP)]
-        argv += ["--server.address", HOST, "--server.port", str(port)]
-        argv += ["--server.headless", "true", "--browser.gatherUsageStats", "false"]
-        services.append(("dashboard", argv, f"http://{HOST}:{port}/_stcore/health"))
+        argv = [py, "-m", "uvicorn", "aimfa.dashboard.app:app_factory", "--factory"]
+        argv += ["--host", HOST, "--port", str(port)]
+        services.append(("dashboard", argv, f"http://{HOST}:{port}/health"))
     return services
 
 
@@ -193,7 +192,7 @@ def main(argv: list[str] | None = None, *, settings: Settings | None = None) -> 
         safe_reset(settings.keys_dir)
 
     if not DASHBOARD_APP.exists():
-        print("note: aimfa/dashboard/app.py not found yet (T7.1); skipping Streamlit")
+        print("note: aimfa/dashboard/app.py not found; skipping the dashboard")
     env = {**os.environ, "AIMFA_MODE": args.mode}
     procs: list[subprocess.Popen] = []
     try:

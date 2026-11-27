@@ -286,7 +286,7 @@ Each phase leaves a working, tested system, so stopping early still leaves a dem
   - **Deps:** T4.3, T5.1
   - **Files:** `scripts/run_demo.py`
   - **Behavior:**
-    - starts CP, gateway, resources (uvicorn subprocesses) and Streamlit
+    - starts CP, gateway, resources (uvicorn subprocesses) and the dashboard
     - waits on `/health`
     - registers the launcher, agents and approver
     - `--reset` wipes `var/`

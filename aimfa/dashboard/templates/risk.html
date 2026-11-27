@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="live" data-src="/partials/risk" data-every="{{ refresh_ms }}">
+  {% include "partials/risk.html" %}
+</section>
+{% endblock %}

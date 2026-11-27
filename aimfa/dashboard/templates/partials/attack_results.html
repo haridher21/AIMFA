@@ -1,0 +1,25 @@
+{% if cards %}
+<div class="grid grid-3">
+  <div class="card metric"><span class="metric-label">Runs</span><strong class="metric-value">{{ runs }}</strong></div>
+  <div class="card metric metric-active"><span class="metric-label">Blocked</span><strong class="metric-value">{{ blocked }}</strong></div>
+  <div class="card metric metric-quarantined"><span class="metric-label">Attack succeeded</span><strong class="metric-value">{{ worked }}</strong></div>
+</div>
+{% for c in cards %}
+<article class="card result">
+  <header class="result-head">
+    <p><strong>{{ c.name }}</strong> · {{ c.mode }}</p>
+    {% if c.not_applicable %}
+    <span class="badge badge-gray">N/A: baseline has no human-approval step</span>
+    {% elif c.succeeded %}
+    <span class="badge badge-red">ATTACK SUCCEEDED</span>
+    {% else %}
+    <span class="badge badge-green">blocked</span>
+    {% endif %}
+  </header>
+  <p class="muted small">blocked by: {{ c.blocked_by }} | reason: {{ c.reason_code }}</p>
+  <pre class="evidence">{{ c.evidence }}</pre>
+</article>
+{% endfor %}
+{% else %}
+<div class="empty">No attacks run yet. Pick a mode and press an attack button.</div>
+{% endif %}

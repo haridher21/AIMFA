@@ -1,0 +1,41 @@
+{% import "macros.html" as m %}
+{% import "icons.html" as ic %}
+{{ m.notice(notice) }}
+{% if loaded %}
+{% if rows %}
+<div class="card table-card">
+  <table>
+    <thead>
+      <tr>
+        {% for key in ["jti", "agent", "task", "scopes", "ttl_seconds", "state"] %}{{ m.th(columns.tokens, key) }}{% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td class="mono">{{ r.jti }}</td>
+        <td class="mono">{{ r.agent }}</td>
+        <td>{{ r.task }}</td>
+        <td class="mono small">{{ r.scopes }}</td>
+        <td class="ttl">
+          <progress max="{{ max_ttl }}" value="{{ r.ttl_seconds }}"></progress>
+          <span>{{ r.ttl }}</span>
+        </td>
+        <td>{{ m.pill(r.state) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty">No tokens issued.</div>
+{% endif %}
+{% if live_agents %}
+<h2>Kill switch</h2>
+<div class="button-row">
+  {% for agent in live_agents %}
+  <button class="btn btn-danger" type="button" data-action="/api/agents/{{ agent|urlencode }}/revoke">{{ ic.icon("ban") }}Revoke all tokens of {{ agent }}</button>
+  {% endfor %}
+</div>
+{% endif %}
+{% endif %}

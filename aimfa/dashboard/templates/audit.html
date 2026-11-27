@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% import "icons.html" as ic %}
+{% block content %}
+<div class="toolbar">
+  <button class="btn btn-primary" type="button" data-fetch="/audit/verify" data-target="verify-result"
+          data-help="Recompute every record's hash and check that it links to the one before it.">{{ ic.icon("shield-check") }}Verify chain</button>
+  <div id="verify-result" class="verify-result"></div>
+</div>
+<p class="note">Live tail: newest first. It restarts on its own if the chain is reset.</p>
+<section class="live" data-src="/partials/audit" data-every="{{ refresh_ms }}">
+  {% include "partials/audit.html" %}
+</section>
+{% endblock %}

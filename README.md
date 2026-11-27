@@ -24,7 +24,7 @@ New to security? Start with **[docs/LEARNING.md](docs/LEARNING.md)**.
  AI AGENT ──token+DPoP──▶ GATEWAY :8100 ──internal secret──▶ MOCK RESOURCES :8200
  (TAMU AI or scripted)    verify → DPoP → replay → scope      files · email · bank · db
                           → risk → tier → allow/deny/pending
- Dashboard :8501 (Streamlit): agents · tokens · risk · approvals · audit · attack lab
+ Dashboard :8501 (FastAPI + HTML): agents · tokens · risk · approvals · audit · attack lab
 ```
 Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · API: [docs/CONTRACTS.md](docs/CONTRACTS.md) · Threats: [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md)
 

@@ -18,7 +18,7 @@ Everything runs locally with fake data. Read [docs/LEARNING.md](docs/LEARNING.md
 | `aimfa/control_plane` | 8000 | agent registry, attestation, token service (STS), revocation, approvals + ntfy + TOTP, risk monitor, audit chain, admin API |
 | `aimfa/gateway` | 8100 | the policy enforcement point; every agent tool call goes here |
 | `aimfa/resources` | 8200 | mock company systems (files, email outbox, bank, db); only accepts calls from the gateway |
-| `aimfa/dashboard` | 8501 | Streamlit admin and approver console + attack lab |
+| `aimfa/dashboard` | 8501 | web admin and approver console (FastAPI + Jinja2) + attack lab |
 | `aimfa/agents` | – | launcher (measures + attests), client SDK (DPoP), scripted agents, TAMU AI agent |
 | `aimfa/common` | – | **contracts (`models.py`)**, config, crypto, DPoP, policy engine, db |
 | `policy/` | – | `roles.yaml` (who may do what), `actions.yaml` (tools, tiers, categories) |

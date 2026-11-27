@@ -1,0 +1,44 @@
+{# Icon + logo macros. The SVG is written right here as template text, so it needs no
+   |safe or Markup: Jinja only escapes {{ values }}, never the template's own markup. #}
+
+{% macro icon(name, cls="") -%}
+<svg class="icon {{ cls }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+{%- if name == "home" %}<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9v11.5h13V9"/><path d="M10 20.5v-6h4v6"/>
+{%- elif name == "bot" %}<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4.5V8"/><circle cx="12" cy="3.5" r="1"/><path d="M9 13.5v1M15 13.5v1"/><path d="M2 13v3M22 13v3"/>
+{%- elif name == "key" %}<circle cx="7.5" cy="15.5" r="4"/><path d="m10.5 12.5 9-9"/><path d="m16.5 6.5 3 3"/><path d="m14 9 2 2"/>
+{%- elif name == "activity" %}<path d="M3 12h4l3-8 4 16 3-8h4"/>
+{%- elif name == "user-check" %}<circle cx="9" cy="8" r="4"/><path d="M2 21c0-3.9 3.1-7 7-7 1.6 0 3 .5 4.2 1.3"/><path d="m15.5 18 2 2 4.5-4.5"/>
+{%- elif name == "receipt" %}<path d="M6 2.5h12v19l-3-2-3 2-3-2-3 2z"/><path d="M9 7.5h6M9 11.5h6M9 15.5h3.5"/>
+{%- elif name == "flask" %}<path d="M9 3h6"/><path d="M10 3v6.5L4.3 18.6A2 2 0 0 0 6 21.5h12a2 2 0 0 0 1.7-2.9L14 9.5V3"/><path d="M7.2 15h9.6"/>
+{%- elif name == "scan" %}<path d="M4 8.5V5a1 1 0 0 1 1-1h3.5M15.5 4H19a1 1 0 0 1 1 1v3.5M20 15.5V19a1 1 0 0 1-1 1h-3.5M8.5 20H5a1 1 0 0 1-1-1v-3.5"/><path d="m8.5 12 2.5 2.5 4.5-5"/>
+{%- elif name == "clock" %}<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+{%- elif name == "shield-check" %}<path d="M12 2.5 4.5 5.5v6c0 4.7 3.2 8.6 7.5 10 4.3-1.4 7.5-5.3 7.5-10v-6z"/><path d="m8.8 12 2.2 2.2 4.2-4.4"/>
+{%- elif name == "lock" %}<rect x="4.5" y="10.5" width="15" height="10.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/><path d="M12 14.5v2.5"/>
+{%- elif name == "bell" %}<path d="M6 9a6 6 0 0 1 12 0c0 6.5 2.5 8 2.5 8h-17S6 15.5 6 9"/><path d="M10 20.5a2 2 0 0 0 4 0"/>
+{%- elif name == "arrow-right" %}<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>
+{%- elif name == "play" %}<path d="M7 4.5v15l12-7.5z"/>
+{%- elif name == "check" %}<path d="m5 12.5 4.5 4.5L19 7.5"/>
+{%- elif name == "x" %}<path d="M6 6l12 12M18 6 6 18"/>
+{%- elif name == "trash" %}<path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l1 13.5h9l1-13.5"/>
+{%- elif name == "ban" %}<circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/>
+{%- elif name == "unlock" %}<rect x="4.5" y="10.5" width="15" height="10.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 7.8-1.2"/>
+{%- else %}<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".6"/>
+{%- endif %}
+</svg>
+{%- endmacro %}
+
+{# The AIMFA mark: a shield (zero trust) holding a keyhole (authentication), brand gradient. #}
+{% macro logo(size=34, gid="aimfa-logo") -%}
+<svg class="logo" width="{{ size }}" height="{{ size }}" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="{{ gid }}" x1="6" y1="3" x2="34" y2="37" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4c6ef5"/>
+      <stop offset="1" stop-color="#0ca678"/>
+    </linearGradient>
+  </defs>
+  <path d="M20 2.5 6 7.8v10.4c0 8.6 5.9 15.9 14 18.8 8.1-2.9 14-10.2 14-18.8V7.8z" fill="url(#{{ gid }})"/>
+  <path d="M20 6.2 9.5 10.2v8c0 6.6 4.4 12.4 10.5 14.9 6.1-2.5 10.5-8.3 10.5-14.9v-8z" fill="#fff" fill-opacity=".14"/>
+  <circle cx="20" cy="16.6" r="4.2" fill="#fff"/>
+  <path d="M17.9 19.4h4.2l1.3 8.2h-6.8z" fill="#fff"/>
+</svg>
+{%- endmacro %}
