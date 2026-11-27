@@ -19,7 +19,7 @@ from aimfa.dashboard.admin_client import (
     ControlPlaneUnavailable,
     InvalidTotpCode,
 )
-from aimfa.dashboard.views import redact, secret_values
+from aimfa.dashboard.views import ColumnHelp, redact, secret_values
 
 REFRESH_SECONDS = 2.5
 T = TypeVar("T")
@@ -101,14 +101,52 @@ def act(fn: Callable[[], Any], success: str, sticky: str) -> None:
     st.rerun(scope="fragment")
 
 
-def page_setup(title: str) -> None:
+def page_setup(title: str, icon: str = "shield", blurb: str = "") -> None:
+    """Page header: Material icon name (e.g. "shield"), title, and a one-line 'what is this'."""
     ensure_repo_root_on_path()
-    st.set_page_config(page_title=f"AIMFA - {title}", layout="wide")
-    st.title(title)
+    st.set_page_config(page_title=f"AIMFA - {title}", page_icon=f":material/{icon}:", layout="wide")
+    st.title(f":material/{icon}: {title}")
+    if blurb:
+        st.caption(blurb)
 
 
-def show_table(rows: list[dict[str, Any]], empty: str = "Nothing to show.") -> None:
-    if rows:
-        st.dataframe(rows, use_container_width=True, hide_index=True)
-    else:
+# Colored dot in front of a known status word, so state is visible at a glance.
+STATUS_DOTS = {
+    "active": "🟢",
+    "allow": "🟢",
+    "registered": "⚪",
+    "expired": "⚪",
+    "pending": "🟡",
+    "quarantined": "🔴",
+    "revoked": "🔴",
+    "deny": "🔴",
+}
+
+# st.badge colors for agent status.
+STATUS_COLORS = {"active": "green", "registered": "gray", "quarantined": "red"}
+
+
+def with_dots(rows: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
+    """Copy of ``rows`` with a status dot in front of ``rows[i][key]``. Display only."""
+    return [
+        {**r, key: f"{STATUS_DOTS[r[key]]} {r[key]}"} if r.get(key) in STATUS_DOTS else r
+        for r in rows
+    ]
+
+
+def show_table(
+    rows: list[dict[str, Any]],
+    empty: str = "Nothing to show.",
+    columns: ColumnHelp | None = None,
+    special: dict[str, Callable[..., Any]] | None = None,
+) -> None:
+    """Table with friendly headers and hover help. ``special`` swaps the plain column type
+    for one key (e.g. a progress bar); it is called with ``label=`` and ``help=``."""
+    if not rows:
         st.info(empty)
+        return
+    config = {
+        key: (special or {}).get(key, st.column_config.Column)(label=label, help=text)
+        for key, (label, text) in (columns or {}).items()
+    }
+    st.dataframe(rows, width="stretch", hide_index=True, column_config=config)

@@ -177,6 +177,73 @@ class AuditTail:
         return added
 
 
+# Column header labels and hover help for each table: row key -> (label, help).
+# Display text only. The row helpers above decide what is safe to show.
+ColumnHelp = dict[str, tuple[str, str]]
+
+AGENT_COLUMNS: ColumnHelp = {
+    "agent": ("Agent", "The agent's registered id."),
+    "role": ("Role", "Its role in policy/roles.yaml. The role caps which scopes it can ever get."),
+    "status": (
+        "Status",
+        "registered = known but not attested yet. active = holds a valid identity credential. "
+        "quarantined = risk got too high, so all its tokens were revoked until an admin clears it.",
+    ),
+    "approver": (
+        "Approver",
+        "The human who must approve this agent's risky actions with a TOTP code.",
+    ),
+}
+
+TOKEN_COLUMNS: ColumnHelp = {
+    "jti": (
+        "Token ID",
+        "The token's unique id (jti), cut short. The dashboard never sees the token itself.",
+    ),
+    "agent": ("Agent", "The agent the token was issued to."),
+    "task": ("Task", "The task the token was issued for. A token is scoped to one task."),
+    "scopes": (
+        "Scopes",
+        "Exactly what this token allows, e.g. files:read:/expenses/*. Anything else is denied.",
+    ),
+    "ttl_seconds": ("Time left", "Seconds until the token expires on its own."),
+    "ttl": ("Expires in", "The same countdown, easier to read."),
+    "state": (
+        "State",
+        "active = usable. expired = its time ran out. revoked = cancelled early (task done, "
+        "kill switch or quarantine).",
+    ),
+}
+
+RULE_HIT_COLUMNS: ColumnHelp = {
+    "agent": ("Agent", "The agent whose behavior triggered the rule."),
+    "rule": (
+        "Rule",
+        "The behavior rule that fired, e.g. out_of_profile (unusual for its role), "
+        "rate_above_limit (too many calls) or exfil_sequence (read a secret, then sent data out).",
+    ),
+    "points": (
+        "Points",
+        "How much this hit added to the agent's risk score. Scores decay over time.",
+    ),
+    "at": ("When", "When the rule fired."),
+}
+
+AUDIT_COLUMNS: ColumnHelp = {
+    "seq": (
+        "#",
+        "Position in the hash chain. Each record includes the previous record's hash, so "
+        "editing one breaks every record after it.",
+    ),
+    "time": ("Time", "When the event was recorded."),
+    "component": ("Component", "Which service wrote it: control plane, gateway, etc."),
+    "actor": ("Actor", "Who did it: an agent id, an approver or the admin."),
+    "event": ("Event", "What happened, e.g. a tool call, token issued or approval decided."),
+    "outcome": ("Outcome", "allow, deny or pending (waiting for a human)."),
+    "reason": ("Reason", "The ReasonCode: the machine-readable 'why' behind the outcome."),
+}
+
+
 # run_all.py reports A9 as N/A in baseline: there is no human-approval step to attack.
 NOT_APPLICABLE_IN_BASELINE = ("A9",)
 

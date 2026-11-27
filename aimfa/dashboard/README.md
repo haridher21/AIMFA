@@ -7,12 +7,14 @@ A Streamlit app, and the **stage for the live demo**. It talks to the control pl
 | `app.py` (home) | agent counts by status | `GET /admin/agents` |
 | 1 Agents | status list; **Clear quarantine**; **Revoke (kill switch)** | `GET /admin/agents`, `POST /admin/agents/{id}/clear-quarantine`, `POST /admin/agents/{id}/revoke` |
 | 2 Tokens | active tokens, TTL countdown (truncated `jti` only); revoke = kill switch for that agent (the contract has no per-token revoke) | `GET /admin/tokens`, `POST /admin/agents/{id}/revoke` |
-| 3 Risk | per-agent score bar chart, step-up/revoke thresholds, recent rule hits | `GET /admin/risk` |
+| 3 Risk | per-agent score chart (Altair, colored by zone, dashed step-up/revoke lines), recent rule hits | `GET /admin/risk` |
 | 4 Approvals | pending approvals (agent, tool, args, risk, expires-in); approve/deny each needs a typed 6-digit TOTP | `GET /admin/approvals?status=pending`, `POST /approvals/{id}/decide` |
 | 5 Audit | live tail (only fetches `after_seq`), **Verify chain** (ok / first_bad_seq) | `GET /admin/audit`, `GET /admin/audit/verify` |
 | 6 Attack Lab | mode toggle aimfa/baseline, A1-A9 + Run all, result cards | none (see below) |
 
 Live pages refresh every ~2.5 s with `st.fragment(run_every=...)`.
+
+**Look and feel:** the theme lives in `.streamlit/config.toml` at the repo root (Streamlit reads it from the folder it starts in, which `run_demo.py` sets to the repo root). Each page calls `ui.page_setup(title, icon, blurb)` for its header and one-line description. Table header labels and hover help are plain dicts in `views.py` (`AGENT_COLUMNS`, `TOKEN_COLUMNS`, …) passed to `ui.show_table(..., columns=...)`.
 
 **Attack Lab isolation:** attacks run through the `attacks` package in their OWN in-process temp stack (temp dir, random secrets, fake data). They never touch the live services shown on the other pages. `ui.ensure_repo_root_on_path()` adds the repo root to `sys.path` so `import attacks` works under `streamlit run`.
 
