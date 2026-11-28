@@ -28,13 +28,13 @@
   </table>
 </div>
 {% else %}
-<div class="empty">No tokens issued.</div>
+<div class="empty">No passes have been handed out yet. They appear here when an agent starts a job.</div>
 {% endif %}
 {% if live_agents %}
-<h2>Kill switch</h2>
+<h2>Emergency stop</h2>
 <div class="button-row">
   {% for agent in live_agents %}
-  <button class="btn btn-danger" type="button" data-action="/api/agents/{{ agent|urlencode }}/revoke">{{ ic.icon("ban") }}Revoke all tokens of {{ agent }}</button>
+  <button class="btn btn-danger" type="button" data-action="/api/agents/{{ agent|urlencode }}/revoke">{{ ic.icon("ban") }}Cancel all passes of {{ agent }}</button>
   {% endfor %}
 </div>
 {% endif %}

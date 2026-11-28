@@ -208,88 +208,120 @@ class AuditTail:
 ColumnHelp = dict[str, tuple[str, str]]
 
 AGENT_COLUMNS: ColumnHelp = {
-    "agent": ("Agent", "The agent's registered id."),
-    "role": ("Role", "Its role in policy/roles.yaml. The role caps which scopes it can ever get."),
+    "agent": ("Agent", "The agent's name in the system."),
+    "role": (
+        "Job",
+        "What the agent was set up to do. Its job decides the most it is ever allowed to touch.",
+    ),
     "status": (
         "Status",
-        "registered = known but not attested yet. active = holds a valid identity credential. "
-        "quarantined = risk got too high, so all its tokens were revoked until an admin clears it.",
+        "registered = signed up but hasn't passed the ID check yet. active = passed the ID "
+        "check and allowed to work. quarantined = behaved too suspiciously, so it was locked "
+        "out until an admin looks into it.",
     ),
     "approver": (
         "Approver",
-        "The human who must approve this agent's risky actions with a TOTP code.",
+        "The person who must say yes, with a code from their phone, before this agent does "
+        "anything risky.",
     ),
 }
 
 TOKEN_COLUMNS: ColumnHelp = {
     "jti": (
-        "Token ID",
-        "The token's unique id (jti), cut short. The dashboard never sees the token itself.",
+        "Pass ID",
+        "A short label for the pass, cut off on purpose. The dashboard never sees the pass "
+        "itself, so it can't leak it.",
     ),
-    "agent": ("Agent", "The agent the token was issued to."),
-    "task": ("Task", "The task the token was issued for. A token is scoped to one task."),
+    "agent": ("Agent", "Which agent holds this pass."),
+    "task": ("Job", "The one job this pass was issued for. A new job needs a new pass."),
     "scopes": (
-        "Scopes",
-        "Exactly what this token allows, e.g. files:read:/expenses/*. Anything else is denied.",
+        "What it allows",
+        "Exactly what this pass lets the agent do, e.g. files:read:/expenses/* means 'read "
+        "files in the expenses folder'. Anything else is refused.",
     ),
-    "ttl_seconds": ("Time left", "Seconds until the token expires on its own."),
+    "ttl_seconds": (
+        "Time left",
+        "How long until the pass stops working by itself. A stolen pass soon becomes useless.",
+    ),
     "ttl": ("Expires in", "The same countdown, easier to read."),
     "state": (
         "State",
-        "active = usable. expired = its time ran out. revoked = cancelled early (task done, "
-        "kill switch or quarantine).",
+        "active = can be used. expired = its time ran out. revoked = cancelled early (job "
+        "finished, emergency stop, or the agent was locked out).",
     ),
 }
 
 RULE_HIT_COLUMNS: ColumnHelp = {
-    "agent": ("Agent", "The agent whose behavior triggered the rule."),
+    "agent": ("Agent", "The agent whose behaviour looked suspicious."),
     "rule": (
-        "Rule",
-        "The behavior rule that fired, e.g. out_of_profile (unusual for its role), "
-        "rate_above_limit (too many calls) or exfil_sequence (read a secret, then sent data out).",
+        "What it did",
+        "The suspicious pattern we spotted, e.g. exfil_sequence (read something secret, then "
+        "tried to send data out), scope_denied (tried something it isn't allowed to), "
+        "out_of_profile (unusual for its job) or rate_above_limit (far too many requests).",
     ),
     "points": (
-        "Points",
-        "How much this hit added to the agent's risk score. Scores decay over time.",
+        "Points added",
+        "How much this added to the agent's suspicion score. Points slowly fade over time.",
     ),
-    "at": ("When", "When the rule fired."),
+    "at": ("When", "When it happened."),
 }
 
 AUDIT_COLUMNS: ColumnHelp = {
     "seq": (
         "#",
-        "Position in the hash chain. Each record includes the previous record's hash, so "
-        "editing one breaks every record after it.",
+        "The entry's place in the chain. Each entry includes a fingerprint of the one before "
+        "it, so changing one entry breaks every entry after it.",
     ),
-    "time": ("Time", "When the event was recorded."),
-    "component": ("Component", "Which service wrote it: control plane, gateway, etc."),
-    "actor": ("Actor", "Who did it: an agent id, an approver or the admin."),
-    "event": ("Event", "What happened, e.g. a tool call, token issued or approval decided."),
-    "outcome": ("Outcome", "allow, deny or pending (waiting for a human)."),
-    "reason": ("Reason", "The ReasonCode: the machine-readable 'why' behind the outcome."),
+    "time": ("Time", "When it happened."),
+    "component": (
+        "Recorded by",
+        "Which part of the system wrote it down: the gateway (the checkpoint every request "
+        "passes through) or the control plane (which issues IDs and passes).",
+    ),
+    "actor": ("Who", "Who did it: an agent, a human approver, the admin, or the system itself."),
+    "event": ("What happened", "e.g. a request to use a tool, a pass being issued, an approval."),
+    "outcome": ("Decision", "allow = yes. deny = no. pending = waiting for a human."),
+    "reason": ("Why", "The reason code behind the decision, e.g. SCOPE_DENIED = not allowed."),
 }
 
 
 # Hover help per attack, keyed by the attack's module name.
 ATTACK_HELP = {
-    "a1_tampered_agent": "A modified agent build tries to get an identity. Stopped by attestation.",
-    "a2_stolen_token": "A thief uses a stolen token without the agent's private key. "
-    "Stopped by DPoP.",
-    "a3_replay": "A captured request is sent a second time. Stopped by DPoP replay protection.",
-    "a4_prompt_injection": "A poisoned document tells the agent to read secrets and email them "
-    "out. Stopped by scopes.",
-    "a5_unauthorized_wire": "The agent tries a bank wire with no human approval. "
-    "Stopped by step-up.",
-    "a6_expired_token": "A token is used after its task ended or its time ran out. Stopped by TTL "
-    "and revocation.",
-    "a7_scope_escalation": "The agent asks for more scopes than its role allows. Stopped by the "
-    "token service's policy.",
-    "a8_audit_tamper": "Someone edits an audit record in the database. Caught by the hash chain.",
-    "a9_fake_approval": "Approval with a wrong TOTP code, or reused for a different amount. "
-    "Stopped by TOTP and action binding.",
-    "a10_silent_exfil": "Reads payroll from the database and emails it out, staying inside its "
-    "scopes. Tests whether the risk monitor notices (a known gap; the human approval still "
-    "stands).",
+    "a1_tampered_agent": "Someone secretly changes the agent's instructions. Stopped by the "
+    "ID check (attestation).",
+    "a2_stolen_token": "A thief steals the agent's pass and tries to use it. Stopped because the "
+    "pass only works with the agent's secret key (DPoP).",
+    "a3_replay": "An attacker records a request and sends it again. Stopped because every "
+    "request can only be used once.",
+    "a4_prompt_injection": "A booby-trapped document tells the agent to steal secrets and email "
+    "them out. Stopped because its pass doesn't allow that.",
+    "a5_unauthorized_wire": "The agent tries to send money without asking anyone. Stopped by "
+    "the human check.",
+    "a6_expired_token": "An old pass is used after its job ended or its time ran out. Stopped "
+    "because passes expire and are cancelled.",
+    "a7_scope_escalation": "The agent asks for more power than its job allows. Refused when the "
+    "pass is issued.",
+    "a8_audit_tamper": "Someone edits the record of what happened to cover their tracks. Caught "
+    "by the chain of fingerprints.",
+    "a9_fake_approval": "Someone approves with a wrong phone code, or reuses an approval for a "
+    "bigger amount. Stopped by the code check.",
+    "a10_silent_exfil": "Reads payroll and emails it out without breaking any single rule. Tests "
+    "whether the behaviour check notices the pattern.",
+}
+
+
+# Plain-English button label per attack, keyed by module name. Falls back to the module name.
+ATTACK_LABELS = {
+    "a1_tampered_agent": "changed instructions",
+    "a2_stolen_token": "stolen pass",
+    "a3_replay": "replayed request",
+    "a4_prompt_injection": "booby-trapped document",
+    "a5_unauthorized_wire": "unapproved payment",
+    "a6_expired_token": "expired pass",
+    "a7_scope_escalation": "asking for more power",
+    "a8_audit_tamper": "editing the record",
+    "a9_fake_approval": "fake approval",
+    "a10_silent_exfil": "quiet data theft",
 }
 
 
@@ -299,6 +331,7 @@ def attack_buttons(attacks: Iterable[Any]) -> list[dict[str, Any]]:
     for i, fn in enumerate(attacks):
         module = getattr(fn, "__module__", "").rsplit(".", 1)[-1]
         words = module.split("_", 1)[1].replace("_", " ") if "_" in module else ""
+        words = ATTACK_LABELS.get(module, words)
         out.append(
             {"index": i, "label": f"A{i + 1} {words}".strip(), "help": ATTACK_HELP.get(module, "")}
         )

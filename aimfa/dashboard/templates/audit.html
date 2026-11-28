@@ -3,10 +3,10 @@
 {% block content %}
 <div class="toolbar">
   <button class="btn btn-primary" type="button" data-fetch="/audit/verify" data-target="verify-result"
-          data-help="Recompute every record's hash and check that it links to the one before it.">{{ ic.icon("shield-check") }}Verify chain</button>
+          data-help="Re-check every entry's fingerprint and make sure it still links to the one before it. Any secret edit shows up here.">{{ ic.icon("shield-check") }}Check nothing was tampered with</button>
   <div id="verify-result" class="verify-result"></div>
 </div>
-<p class="note">Live tail: newest first. It restarts on its own if the chain is reset.</p>
+<p class="note">Newest entries at the top. Updates live.</p>
 <section class="live" data-src="/partials/audit" data-every="{{ refresh_ms }}">
   {% include "partials/audit.html" %}
 </section>

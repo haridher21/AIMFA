@@ -21,10 +21,10 @@
         <td class="actions">
           {% if r.quarantined %}
           <button class="btn" type="button" data-action="/api/agents/{{ r.agent|urlencode }}/clear-quarantine"
-                  data-help="Let the agent work again after an admin has looked into it.">{{ ic.icon("unlock") }}Clear quarantine</button>
+                  data-help="Let the agent work again, after an admin has checked what happened.">{{ ic.icon("unlock") }}Unlock agent</button>
           {% endif %}
           <button class="btn btn-danger" type="button" data-action="/api/agents/{{ r.agent|urlencode }}/revoke"
-                  data-help="Cancel every token this agent holds, immediately.">{{ ic.icon("ban") }}Revoke (kill switch)</button>
+                  data-help="Cancel every pass this agent holds, right now. Its next request will be refused.">{{ ic.icon("ban") }}Emergency stop</button>
         </td>
       </tr>
       {% endfor %}
@@ -32,6 +32,6 @@
   </table>
 </div>
 {% else %}
-<div class="empty">No agents registered.</div>
+<div class="empty">No agents have been set up yet.</div>
 {% endif %}
 {% endif %}

@@ -1,13 +1,13 @@
 {% import "macros.html" as m %}
 {{ m.notice(notice) }}
 {% if loaded %}
-<p class="note">Step-up at {{ "%g"|format(chart.step_up) }}, revoke + quarantine at {{ "%g"|format(chart.revoke) }}</p>
+<p class="note">At {{ "%g"|format(chart.step_up) }} points a human must approve risky actions. At {{ "%g"|format(chart.revoke) }} points the agent is locked out.</p>
 {% if chart.bars %}
 <div class="card chart">
   <div class="legend">
     <span class="key key-normal">normal</span>
-    <span class="key key-step-up">step-up</span>
-    <span class="key key-revoke">revoke</span>
+    <span class="key key-step-up">needs a human</span>
+    <span class="key key-revoke">locked out</span>
   </div>
   <div class="bars">
     {% for b in chart.bars %}
@@ -18,24 +18,24 @@
         <span class="threshold threshold-step-up" data-pct="{{ chart.step_pct }}" data-pct-prop="left"></span>
         <span class="threshold threshold-revoke" data-pct="{{ chart.revoke_pct }}" data-pct-prop="left"></span>
       </div>
-      <span class="bar-value" data-help="zone: {{ b.zone }}">{{ "%.1f"|format(b.score) }}</span>
+      <span class="bar-value" data-help="{{ {"normal": "Acting normally", "step-up": "Suspicious: a human must approve risky actions", "revoke": "Too suspicious: locked out"}.get(b.zone, b.zone) }}">{{ "%.1f"|format(b.score) }}</span>
     </div>
     {% endfor %}
     <div class="bar-row axis">
       <span class="bar-label"></span>
       <div class="bar-track">
-        <span class="axis-label axis-step-up" data-pct="{{ chart.step_pct }}" data-pct-prop="left">step-up {{ "%g"|format(chart.step_up) }}</span>
-        <span class="axis-label axis-revoke" data-pct="{{ chart.revoke_pct }}" data-pct-prop="left">revoke {{ "%g"|format(chart.revoke) }}</span>
+        <span class="axis-label axis-step-up" data-pct="{{ chart.step_pct }}" data-pct-prop="left">needs a human ({{ "%g"|format(chart.step_up) }})</span>
+        <span class="axis-label axis-revoke" data-pct="{{ chart.revoke_pct }}" data-pct-prop="left">locked out ({{ "%g"|format(chart.revoke) }})</span>
       </div>
       <span class="bar-value"></span>
     </div>
   </div>
 </div>
 {% else %}
-<div class="empty">No risk scores yet.</div>
+<div class="empty">No suspicion scores yet. They appear once agents start working.</div>
 {% endif %}
 
-<h2>Recent rule hits</h2>
+<h2>Suspicious things we spotted</h2>
 {% if hits %}
 <div class="card table-card">
   <table>
@@ -55,6 +55,6 @@
   </table>
 </div>
 {% else %}
-<div class="empty">No rule hits yet.</div>
+<div class="empty">Nothing suspicious so far.</div>
 {% endif %}
 {% endif %}

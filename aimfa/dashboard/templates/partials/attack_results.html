@@ -1,25 +1,25 @@
 {% if cards %}
 <div class="grid grid-3">
-  <div class="card metric"><span class="metric-label">Runs</span><strong class="metric-value">{{ runs }}</strong></div>
-  <div class="card metric metric-active"><span class="metric-label">Blocked</span><strong class="metric-value">{{ blocked }}</strong></div>
-  <div class="card metric metric-quarantined"><span class="metric-label">Attack succeeded</span><strong class="metric-value">{{ worked }}</strong></div>
+  <div class="card metric"><span class="metric-label">Attacks tried</span><strong class="metric-value">{{ runs }}</strong></div>
+  <div class="card metric metric-active"><span class="metric-label">Stopped</span><strong class="metric-value">{{ blocked }}</strong></div>
+  <div class="card metric metric-quarantined"><span class="metric-label">Got through</span><strong class="metric-value">{{ worked }}</strong></div>
 </div>
 {% for c in cards %}
 <article class="card result">
   <header class="result-head">
-    <p><strong>{{ c.name }}</strong> · {{ c.mode }}</p>
+    <p><strong>{{ c.name }}</strong> · {{ "with AIMFA" if c.mode == "aimfa" else "without AIMFA (baseline)" }}</p>
     {% if c.not_applicable %}
-    <span class="badge badge-gray">N/A: baseline has no human-approval step</span>
+    <span class="badge badge-gray">Not applicable: without AIMFA there is no human check to attack</span>
     {% elif c.succeeded %}
-    <span class="badge badge-red">ATTACK SUCCEEDED</span>
+    <span class="badge badge-red">ATTACK GOT THROUGH</span>
     {% else %}
-    <span class="badge badge-green">blocked</span>
+    <span class="badge badge-green">stopped</span>
     {% endif %}
   </header>
-  <p class="muted small">blocked by: {{ c.blocked_by }} | reason: {{ c.reason_code }}</p>
+  <p class="muted small">Stopped by: {{ c.blocked_by }} · reason code: {{ c.reason_code }}</p>
   <pre class="evidence">{{ c.evidence }}</pre>
 </article>
 {% endfor %}
 {% else %}
-<div class="empty">No attacks run yet. Pick a mode and press an attack button.</div>
+<div class="empty">No attacks yet. Choose a setup above, then press an attack button. Hover over a button to see what that attack does.</div>
 {% endif %}

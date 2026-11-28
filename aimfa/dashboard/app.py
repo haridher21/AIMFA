@@ -47,58 +47,66 @@ REFRESH_MS = 2500
 T = TypeVar("T")
 
 # path, nav label, page title, one-line "what am I looking at"
+# Nav labels stay short and fixed: docs/DEMO.md and scripts/demo_autoplay.py name the tabs by them.
+# Titles and blurbs are written for someone seeing the system for the first time (in-class demo).
 PAGES: dict[str, tuple[str, str, str, str]] = {
     "home": (
         "/",
         "Home",
-        "AIMFA admin console",
-        "The control room for the zero-trust gateway. Watch agents, tokens, risk and the audit "
-        "log live, and approve risky actions. Everything goes through the control plane's "
-        "admin API: this app never reads the database.",
+        "AIMFA control room",
+        "AI agents can now read files, send email and move money on their own. Most of them "
+        "carry one password that never changes, so anyone who steals it can act as the agent. "
+        "AIMFA puts a security checkpoint between the agent and everything it uses: every "
+        "request is checked, and anything risky needs a real person to say yes.",
     ),
     "agents": (
         "/agents",
         "Agents",
-        "Agents",
-        "Every registered AI agent, its role and its current state. Revoke is the kill switch: "
-        "it cancels all of the agent's tokens at once.",
+        "The AI agents we are watching",
+        "Each row is one AI helper program, the job it was set up for, and whether it is "
+        "currently allowed to work. If something looks wrong, the red button is an emergency "
+        "stop: it cancels every pass the agent holds, instantly.",
     ),
     "tokens": (
         "/tokens",
         "Tokens",
-        "Tokens",
-        "Short-lived access tokens issued to agents. Each one is limited to one task and its "
-        "scopes, works only with the agent's private key (DPoP), and expires on its own.",
+        "Temporary passes (tokens)",
+        "Instead of a permanent password, an agent gets a temporary pass for each job. A pass "
+        "only allows that one job, expires by itself after a few minutes, and is useless to "
+        "anyone who steals it, because it only works together with a secret key that never "
+        "leaves the agent.",
     ),
     "risk": (
         "/risk",
         "Risk",
-        "Risk",
-        "How suspicious each agent's behavior looks. Each rule hit adds points, and points "
-        "fade over time. Above the step-up line, actions need a human. At the revoke line, the "
-        "agent is cut off and quarantined.",
+        "Suspicion meter (risk score)",
+        "We watch what each agent does. Suspicious moves, like reading secrets and then "
+        "emailing them out, add points. Past the orange line, a person must approve its next "
+        "risky action. Past the red line, the agent is locked out on the spot.",
     ),
     "approvals": (
         "/approvals",
         "Approvals",
-        "Approvals",
-        "Risky actions an agent is waiting to do. Nothing happens until a human approves with "
-        "a TOTP code. Each request expires if nobody answers.",
+        "Waiting for a human to say yes",
+        "Risky actions, like sending money, stop here until a person approves them. The "
+        "approver types the 6-digit code from the authenticator app on their phone. If nobody "
+        "answers in time, the answer is automatically no.",
     ),
     "audit": (
         "/audit",
         "Audit",
-        "Audit",
-        "Every allow, deny and pending decision, as it happens. Records are hash-chained, so "
-        "editing or deleting one afterwards is detectable. Verify chain re-checks every link.",
+        "The permanent record (audit log)",
+        "Every yes, no and wait-for-a-human decision is written down here as it happens. Each "
+        "entry is locked to the one before it, like links in a chain, so if anyone secretly "
+        "edits or deletes an entry later, the button below catches it.",
     ),
     "attack_lab": (
         "/attack-lab",
         "Attack Lab",
-        "Attack Lab",
-        "Run real attacks against the system twice: once with only a shared password "
-        "(baseline) and once with AIMFA. Each card shows whether the attack worked, and if "
-        "not, which check stopped it.",
+        "Attack Lab: try to break in",
+        "Run 10 real attacks two ways: against the usual setup, where the agent has one "
+        "password and nothing else ('baseline'), and against AIMFA. Each result shows whether "
+        "the attack worked and, if not, which check stopped it.",
     ),
 }
 
@@ -115,18 +123,25 @@ PAGE_ICONS = {
 
 # Short line for the Home page's quick links.
 PAGE_SHORT = {
-    "agents": "Who is registered, who is quarantined. Kill switch.",
-    "tokens": "Live tokens and their countdowns.",
-    "risk": "Behavior scores against the step-up and revoke lines.",
-    "approvals": "Risky actions waiting for a human + TOTP.",
-    "audit": "Tamper-evident log of every decision.",
-    "attack_lab": "Run A1-A10, baseline vs AIMFA.",
+    "agents": "The AI helpers, what they do, and the emergency stop.",
+    "tokens": "Temporary passes and how long until each one runs out.",
+    "risk": "How suspicious each agent looks right now.",
+    "approvals": "Risky actions waiting for a person to say yes.",
+    "audit": "A record of every decision that can't be secretly changed.",
+    "attack_lab": "Try 10 attacks, with and without AIMFA.",
 }
 
+# Plain label for each home-page counter, and its hover text.
+STATUS_LABELS = {
+    AgentStatus.REGISTERED: "Signed up, not started",
+    AgentStatus.ACTIVE: "Working normally",
+    AgentStatus.QUARANTINED: "Locked out",
+}
 STATUS_HELP = {
-    AgentStatus.REGISTERED: "Known, but not attested yet.",
-    AgentStatus.ACTIVE: "Attested: holds a valid identity credential.",
-    AgentStatus.QUARANTINED: "Risk too high. All tokens revoked until an admin clears it.",
+    AgentStatus.REGISTERED: "Known to us, but they have not passed the ID check yet.",
+    AgentStatus.ACTIVE: "Passed the ID check and allowed to work.",
+    AgentStatus.QUARANTINED: "Behaved too suspiciously. All their passes were cancelled until "
+    "an admin looks into it.",
 }
 STATUS_ICONS = {
     AgentStatus.REGISTERED: "clock",
@@ -135,33 +150,35 @@ STATUS_ICONS = {
 }
 
 # The four independent checks every tool call must pass (see docs/LEARNING.md).
-# icon, mechanism, name, explanation
+# icon, technical name (shown small), plain question, plain explanation
 CHECKS = (
     (
         "scan",
         "Attestation",
-        "What the agent IS",
-        "Its code, prompt, tools and model are hashed and must match the registered "
-        "'golden' value.",
+        "ID check: is it really our agent?",
+        "We take a fingerprint of the agent's code and instructions. If anyone changed even "
+        "one letter, the fingerprint won't match and the agent is turned away.",
     ),
     (
         "key",
         "DPoP token",
-        "What the agent HAS",
-        "A short-lived, scoped token that only works together with the agent's private key.",
+        "Pass check: does it hold a valid pass?",
+        "A temporary pass for this one job. It runs out in minutes and only works for its "
+        "owner, like a key card that won't open doors for someone who stole it.",
     ),
     (
         "activity",
         "Risk monitor",
-        "What the agent DOES",
-        "A behavior risk score. High scores force step-up; very high scores revoke the agent "
-        "and quarantine it.",
+        "Behaviour check: is it acting normally?",
+        "Suspicious moves add points. Too many points and a human must step in. Even more "
+        "and the agent is locked out immediately.",
     ),
     (
         "user-check",
-        "Push + TOTP",
-        "A HUMAN for risky actions",
-        "A phone push, then approval with a 6-digit code, bound to that exact action.",
+        "Phone + code",
+        "Human check: does a person agree?",
+        "Risky actions, like sending money, buzz a person's phone. Nothing happens until they "
+        "approve with the code from their authenticator app.",
     ),
 )
 
@@ -277,6 +294,7 @@ def create_app(
             {
                 "status": s.value,
                 "count": counts.get(s, 0),
+                "label": STATUS_LABELS.get(s, s.value),
                 "help": STATUS_HELP.get(s, ""),
                 "icon": STATUS_ICONS.get(s, "clock"),
             }

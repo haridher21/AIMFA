@@ -7,15 +7,15 @@
   <header class="approval-head">
     <p><strong class="mono">{{ c.agent }}</strong> wants to run <code>{{ c.tool }}</code></p>
     <div class="badges">
-      <span class="badge badge-orange" data-help="The agent's risk score when it asked.">risk {{ "%g"|format(c.risk) }}</span>
-      <span class="badge badge-gray" data-help="After this, the request expires and the action never runs.">expires in {{ c.expires_in }}</span>
+      <span class="badge badge-orange" data-help="How suspicious the agent looked when it asked. Higher is more suspicious.">suspicion {{ "%g"|format(c.risk) }}</span>
+      <span class="badge badge-gray" data-help="If nobody answers by then, the answer is automatically no.">auto-deny in {{ c.expires_in }}</span>
     </div>
   </header>
-  <p class="muted small">Exact arguments this approval is bound to:</p>
+  <p class="muted small">Exactly what it wants to do. Approving allows this and nothing else:</p>
   <pre class="args">{{ c.args_json }}</pre>
   <div class="decide">
-    <label for="code-{{ c.approval_id }}">TOTP code for <span class="mono">{{ c.approver_id }}</span>
-      <span class="help" data-help="Open the approver's authenticator app and type the current 6-digit code. The code is bound to this exact action, so it can't be reused for a different one." tabindex="0">?</span>
+    <label for="code-{{ c.approval_id }}">6-digit code from <span class="mono">{{ c.approver_id }}</span>'s phone
+      <span class="help" data-help="Open the approver's authenticator app and type the current 6-digit code. The approval only covers this exact action, so it can't be reused for anything else." tabindex="0">?</span>
     </label>
     <input id="code-{{ c.approval_id }}" class="code-input" type="text" inputmode="numeric" maxlength="6"
            autocomplete="off" placeholder="123456" spellcheck="false">
@@ -26,6 +26,6 @@
   </div>
 </article>
 {% else %}
-<div class="empty empty-ok">{{ ic.icon("shield-check") }} No pending approvals.</div>
+<div class="empty empty-ok">{{ ic.icon("shield-check") }} Nothing is waiting for approval.</div>
 {% endfor %}
 {% endif %}

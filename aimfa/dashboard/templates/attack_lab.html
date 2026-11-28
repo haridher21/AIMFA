@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% import "macros.html" as m %}
 {% import "icons.html" as ic %}
-{% block note %}<div class="alert alert-info">Attacks run in their OWN throwaway in-process stack (temp dir, random secrets, fake data). They never touch the live services shown on the other pages.</div>{% endblock %}
+{% block note %}<div class="alert alert-info">These attacks run in their OWN throwaway copy of the system, with fake data. Nothing here affects the live agents on the other pages.</div>{% endblock %}
 {% block content %}
 {{ m.notice(attack_notice) }}
 <div class="card attack-panel" data-group="attacks">
   <fieldset class="mode">
-    <legend><span class="help" data-help="baseline = one shared API key, no other checks. aimfa = all four checks on." tabindex="0">Mode</span></legend>
-    <label><input type="radio" name="mode" value="aimfa" checked> aimfa</label>
-    <label><input type="radio" name="mode" value="baseline"> baseline</label>
+    <legend><span class="help" data-help="baseline = the usual way today: the agent has one password and nothing else is checked. aimfa = all four checks switched on." tabindex="0">Attack which setup?</span></legend>
+    <label><input type="radio" name="mode" value="aimfa" checked> With AIMFA</label>
+    <label><input type="radio" name="mode" value="baseline"> Without (baseline: just a password)</label>
   </fieldset>
   <div class="grid grid-5">
     {% for b in buttons %}
@@ -18,7 +18,7 @@
   </div>
   <div class="button-row">
     <button class="btn btn-primary" type="button" data-action="/api/attacks/run" data-body='{"index": null}'
-            data-mode-from="mode">{{ ic.icon("play") }}Run all</button>
+            data-mode-from="mode">{{ ic.icon("play") }}Run all 10 attacks</button>
     <button class="btn btn-ghost" type="button" data-action="/api/attacks/clear">{{ ic.icon("trash") }}Clear results</button>
   </div>
 </div>

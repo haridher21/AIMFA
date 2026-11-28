@@ -7,7 +7,7 @@
   <div class="card stat stat-{{ c.status }}">
     <span class="stat-icon">{{ ic.icon(c.icon) }}</span>
     <div class="stat-body">
-      <span class="help stat-label" data-help="{{ c.help }}" tabindex="0">{{ c.status|capitalize }} agents</span>
+      <span class="help stat-label" data-help="{{ c.help }}" tabindex="0">{{ c.label }}</span>
       <strong class="stat-value">{{ c.count }}</strong>
     </div>
   </div>
@@ -15,7 +15,7 @@
   <a class="card stat stat-pending{% if pending %} stat-attention{% endif %}" href="/approvals">
     <span class="stat-icon">{{ ic.icon("bell") }}</span>
     <div class="stat-body">
-      <span class="stat-label">Pending approvals</span>
+      <span class="help stat-label" data-help="Risky actions waiting for a person to approve or deny them." tabindex="0">Waiting for a human</span>
       <strong class="stat-value">{{ pending if pending is not none else "–" }}</strong>
     </div>
   </a>

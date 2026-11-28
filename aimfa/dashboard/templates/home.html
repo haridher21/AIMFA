@@ -4,8 +4,8 @@
 {% block header %}
 <section class="hero">
   <div class="hero-text">
-    <p class="eyebrow">Zero-trust gateway · admin console</p>
-    <h1>Every tool call an AI agent makes is checked four ways.</h1>
+    <p class="eyebrow">MFA for AI agents · live demo</p>
+    <h1>Before an AI agent can do anything, it has to pass four security checks.</h1>
     <p class="blurb">{{ blurb }}</p>
   </div>
   <div class="hero-mark">{{ ic.logo(104, "hero-logo") }}</div>
@@ -13,14 +13,14 @@
 {% endblock %}
 
 {% block content %}
-<h2 class="section-title">Right now</h2>
+<h2 class="section-title">What is happening right now</h2>
 <section class="live" data-src="/partials/home" data-every="{{ refresh_ms }}">
   {% include "partials/home.html" %}
 </section>
 
-<h2 class="section-title">How a tool call is checked</h2>
+<h2 class="section-title">What happens every time an agent asks to do something</h2>
 <div class="pipeline">
-  <div class="pipe-end"><span class="pipe-end-icon">{{ ic.icon("bot") }}</span>Agent</div>
+  <div class="pipe-end"><span class="pipe-end-icon">{{ ic.icon("bot") }}</span>AI agent asks</div>
   {% for icon_name, tag, name, text in checks %}
   <span class="pipe-arrow" aria-hidden="true">{{ ic.icon("arrow-right") }}</span>
   <article class="card step step-{{ loop.index }}">
@@ -33,11 +33,11 @@
   </article>
   {% endfor %}
   <span class="pipe-arrow" aria-hidden="true">{{ ic.icon("arrow-right") }}</span>
-  <div class="pipe-end"><span class="pipe-end-icon">{{ ic.icon("receipt") }}</span>Company systems</div>
+  <div class="pipe-end"><span class="pipe-end-icon">{{ ic.icon("receipt") }}</span>Files, email, bank</div>
 </div>
-<p class="muted small">Every check can say no on its own, and every decision is written to the audit log. New to this? <code>docs/LEARNING.md</code> explains each check in plain English.</p>
+<p class="muted small">Any one of the four checks can say no by itself, and every decision is written down in a record that can't be secretly changed. Want more detail? <code>docs/LEARNING.md</code> explains each check step by step.</p>
 
-<h2 class="section-title">Go to</h2>
+<h2 class="section-title">Explore the pages</h2>
 <div class="grid grid-3">
   {% for l in links %}
   <a class="card link-card" href="{{ l.href }}">
